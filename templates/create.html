@@ -1,0 +1,33 @@
+{{define "create"}}
+<div class="create-recipe">
+    <h1>Create New Recipe</h1>
+    <form method="POST" action="/recipes">
+        <div class="form-group">
+            <label for="title">Title:</label>
+            <input type="text" id="title" name="title" required>
+        </div>
+
+        <div class="form-group">
+            <label for="description">Description:</label>
+            <textarea id="description" name="description"></textarea>
+        </div>
+
+        <div class="form-group">
+            <label for="prep_time">Prep Time (minutes):</label>
+            <input type="number" id="prep_time" name="prep_time" required>
+        </div>
+
+        <div class="form-group">
+            <label for="cook_time">Cook Time (minutes):</label>
+            <input type="number" id="cook_time" name="cook_time" required>
+        </div>
+
+        <div class="form-group">
+            <label for="servings">Servings:</label>
+            <input type="number" id="servings" name="servings" required>
+        </div>
+
+        <button type="submit">Create Recipe</button>
+    </form>
+</div>
+{{end}}

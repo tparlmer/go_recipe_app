@@ -1,0 +1,12 @@
+{{define "list"}}
+<h1>List of Recipes</h1>
+{{if and . (gt (len .) 0)}}
+<ul>
+    {{range .}} <!-- go infers a slice of recipes because range is used - slice of recipes is not explicitly defined in models.go currently -->
+    <li><a href="/recipes/{{.ID}}">{{.Title}}</a></li>
+    {{end}}
+</ul>
+{{else}}
+<p>No recipes found</p>
+{{end}}
+{{end}}

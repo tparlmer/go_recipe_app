@@ -6,6 +6,14 @@
     <title>Recipe Test</title>
 </head>
 <body>
-    {{template "test" .}} <!-- THIS IS THE INJECTION POINT -->
+{{if eq .Template "list"}} <!-- THIS IS THE INJECTION POINT -->
+    {{template "list" .Data}}
+{{else if eq .Template "view"}}
+    {{template "view" .Data}}
+{{else if eq .Template "create"}}
+    {{template "create" .Data}}
+{{else if eq .Template "edit"}}
+    {{template "edit" .Data}}
+{{end}}
 </body>
 </html> 

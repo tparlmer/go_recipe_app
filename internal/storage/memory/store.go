@@ -21,67 +21,65 @@ func New() *Store {
 	}
 }
 
-// COMMENT BELOW CODE BACK IN ONCE YOU UNDERSTAND HOW IT WORKS!
+//List returns all recipes
+func (s *Store) List() ([]models.Recipe, error) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
 
-// List returns all recipes
-// func (s *Store) List() ([]models.Recipe, error) {
-// 	s.mu.RLock()
-// 	defer s.mu.RUnlock()
+	recipes := make([]models.Recipe, 0, len(s.recipes))
+	for _, recipe := range s.recipes {
+		recipes = append(recipes, recipe)
+	}
+	return recipes, nil
+}
 
-// 	recipes := make([]models.Recipe, 0, len(s.recipes))
-// 	for _, recipe := range s.recipes {
-// 		recipes = append(recipes, recipe)
-// 	}
-// 	return recipes, nil
-// }
+// Get returns a single recipe by ID
+func (s *Store) Get(id string) (models.Recipe, error) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
 
-// // Get returns a single recipe by ID
-// func (s *Store) Get(id string) (models.Recipe, error) {
-// 	s.mu.RLock()
-// 	defer s.mu.RUnlock()
+	recipe, exists := s.recipes[id]
+	if !exists {
+		return models.Recipe{}, fmt.Errorf("recipe not found: %s", id)
+	}
+	return recipe, nil
+}
 
-// 	recipe, exists := s.recipes[id]
-// 	if !exists {
-// 		return models.Recipe{}, fmt.Errorf("recipe not found: %s", id)
-// 	}
-// 	return recipe, nil
-// }
+// Create adds a new recipe
+func (s *Store) Create(recipe models.Recipe) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
 
-// // Create adds a new recipe
-// func (s *Store) Create(recipe models.Recipe) error {
-// 	s.mu.Lock()
-// 	defer s.mu.Unlock()
+	if _, exists := s.recipes[recipe.ID]; exists {
+		return fmt.Errorf("recipe already exists: %s", recipe.ID)
+	}
 
-// 	if _, exists := s.recipes[recipe.ID]; exists {
-// 		return fmt.Errorf("recipe already exists: %s", recipe.ID)
-// 	}
+	s.recipes[recipe.ID] = recipe
+	return nil
+}
 
-// 	s.recipes[recipe.ID] = recipe
-// 	return nil
-// }
+// Update modifies an existing recipe
+func (s *Store) Update(recipe models.Recipe) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
 
-// // Update modifies an existing recipe
-// func (s *Store) Update(recipe models.Recipe) error {
-// 	s.mu.Lock()
-// 	defer s.mu.Unlock()
+	if _, exists := s.recipes[recipe.ID]; !exists {
+		return fmt.Errorf("recipe not found: %s", recipe.ID)
+	}
 
-// 	if _, exists := s.recipes[recipe.ID]; !exists {
-// 		return fmt.Errorf("recipe not found: %s", recipe.ID)
-// 	}
+	s.recipes[recipe.ID] = recipe
+	return nil
+}
 
-// 	s.recipes[recipe.ID] = recipe
-// 	return nil
-// }
+// Delete removes a recipe
+func (s *Store) Delete(id string) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
 
-// // Delete removes a recipe
-// func (s *Store) Delete(id string) error {
-// 	s.mu.Lock()
-// 	defer s.mu.Unlock()
+	if _, exists := s.recipes[id]; !exists {
+		return fmt.Errorf("recipe not found: %s", id)
+	}
 
-// 	if _, exists := s.recipes[id]; !exists {
-// 		return fmt.Errorf("recipe not found: %s", id)
-// 	}
-
-// 	delete(s.recipes, id)
-// 	return nil
-// }
+	delete(s.recipes, id)
+	return nil
+}
