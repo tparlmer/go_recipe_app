@@ -100,4 +100,55 @@
   - [ ] Error handling in serialization
   - References:
     - [Go JSON Package](https://pkg.go.dev/encoding/json)
-    - [Go Binary Encoding](https://pkg.go.dev/encoding/gob) 
+    - [Go Binary Encoding](https://pkg.go.dev/encoding/gob)
+
+## Deployment Concepts
+- [ ] Server Configuration
+  - Key Concepts:
+    - Process management (systemd vs supervisor)
+    - Environment variables vs config files
+    - File permissions and security
+    - Path management in production
+  - References:
+    - [Systemd Service Files](https://www.digitalocean.com/community/tutorials/how-to-use-systemctl-to-manage-systemd-services-and-units)
+    - [Linux File Permissions](https://www.digitalocean.com/community/tutorials/linux-permissions-basics-and-how-to-use-umask-on-a-vps)
+
+- [ ] Database Management
+  - Key Concepts:
+    - BoltDB file location strategies
+    - Backup procedures
+    - Permission settings
+    - Recovery plans
+  - References:
+    - [Linux Directory Structure](https://www.digitalocean.com/community/tutorials/linux-directory-structure-explained)
+    - [Backup Strategies](https://www.digitalocean.com/community/tutorials/how-to-choose-an-effective-backup-strategy-for-your-vps)
+
+- [ ] Web Server Configuration
+  - Key Concepts:
+    - Nginx as reverse proxy
+    - SSL/TLS setup
+    - Static file serving
+    - Security headers
+  - References:
+    - [Nginx Reverse Proxy](https://www.digitalocean.com/community/tutorials/how-to-configure-nginx-as-a-reverse-proxy-on-ubuntu-22-04)
+    - [Let's Encrypt SSL](https://www.digitalocean.com/community/tutorials/how-to-secure-nginx-with-let-s-encrypt-on-ubuntu-22-04)
+
+- [ ] Production Logging
+  - Key Concepts:
+    - Log rotation
+    - Error reporting
+    - Performance monitoring
+    - Access logs
+  - References:
+    - [Go Production Logging](https://www.digitalocean.com/community/tutorials/how-to-use-logrotate-to-manage-log-files-on-ubuntu-20-04)
+    - [Nginx Access Logs](https://www.digitalocean.com/community/tutorials/how-to-configure-logging-and-log-rotation-in-nginx-on-an-ubuntu-vps)
+
+- [ ] Deployment Process
+  - Key Concepts:
+    - Build process
+    - File transfer methods
+    - Zero-downtime updates
+    - Rollback procedures
+  - References:
+    - [Go Deployment Best Practices](https://www.digitalocean.com/community/tutorials/how-to-deploy-a-go-web-application-using-nginx-on-ubuntu-18-04)
+    - [SCP File Transfer](https://www.digitalocean.com/community/tutorials/how-to-use-scp-to-securely-transfer-files-between-servers) 

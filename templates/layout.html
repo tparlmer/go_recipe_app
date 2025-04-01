@@ -5,21 +5,39 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Recipe App</title>
     <style>
-        /* Basic navigation styling */
+        body {
+            background-color: #E0F2F1;  /* Light teal background */
+            margin: 0;
+            font-family: Arial, sans-serif;
+        }
+
         .nav {
-            background-color: #f8f9fa;
+            background-color: #00796B;  /* Darker teal for nav */
             padding: 1rem;
             margin-bottom: 2rem;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         }
+
         .nav a {
-            color: #333;
+            color: white;
             text-decoration: none;
             margin-right: 1rem;
-            padding: 0.5rem;
-        }
-        .nav a:hover {
-            background-color: #e9ecef;
+            padding: 0.5rem 1rem;
             border-radius: 4px;
+            transition: background-color 0.2s;
+        }
+
+        .nav a:hover {
+            background-color: #00897B;  /* Slightly lighter teal on hover */
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         }
     </style>
 </head>
