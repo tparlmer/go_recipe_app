@@ -1,5 +1,5 @@
 {{define "view"}}
-<div class="recipe-view">
+<div>
     <h1>{{.Title}}</h1>
     
     <div class="recipe-meta">
@@ -32,12 +32,45 @@
     </div>
 
     <div class="recipe-actions">
-        <a href="/recipes/{{.ID}}/edit" class="button">Edit Recipe</a>
+        <button onclick="editRecipe('{{.ID}}')" class="button edit">Edit Recipe</button>
         <button onclick="deleteRecipe('{{.ID}}')" class="button delete">Delete Recipe</button>
     </div>
 </div>
 
+<style>
+    .recipe-actions {
+        margin-top: 20px;
+    }
+    .button {
+        padding: 8px 16px;
+        margin-right: 10px;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 16px;
+        border: none;
+        transition: background-color 0.2s;
+    }
+    .edit {
+        background-color: #00796B;  /* Matching our teal theme */
+        color: white;
+    }
+    .edit:hover {
+        background-color: #00897B;
+    }
+    .delete {
+        background-color: #D32F2F;  /* Red for delete */
+        color: white;
+    }
+    .delete:hover {
+        background-color: #E53935;
+    }
+</style>
+
 <script>
+function editRecipe(id) {
+    window.location.href = `/recipes/${id}/edit`;
+}
+
 function deleteRecipe(id) {
     if (!confirm('Are you sure you want to delete this recipe?')) {
         return;

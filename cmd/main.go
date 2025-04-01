@@ -9,7 +9,6 @@ import (
 	"log"           // For logging messages and errors
 	"net/http"      // Go's web server package
 	"os"
-	"path/filepath"
 )
 
 func main() {
@@ -18,13 +17,13 @@ func main() {
 	tmpl := template.Must(template.ParseGlob("templates/*.html"))
 	log.Println("Templates parsed successfully")
 
-	// Initialize BoltDB store
-	dbPath := filepath.Join("data", "recipes.db")
-	// Ensure data directory exists
-	if err := os.MkdirAll("data", 0755); err != nil {
-		log.Fatalf("Could not create data directory: %v", err)
+	// Get database path from environment variable or use default
+	dbPath := os.Getenv("DB_PATH")
+	if dbPath == "" {
+		dbPath = "data/recipes.db" // fallback to current behavior
 	}
 
+	// Initialize store with configurable path
 	store, err := boltdb.New(dbPath)
 	if err != nil {
 		log.Fatalf("Could not initialize database: %v", err)

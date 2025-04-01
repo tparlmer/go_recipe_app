@@ -1,0 +1,42 @@
+# Binary files
+recipe-app
+*.exe
+*.dll
+*.so
+*.dylib
+
+# Database files
+*.db
+*.db.backup
+/data/*.db
+
+# Deployment
+/deploy/
+/deploy/*
+
+# Logs and temp files
+*.log
+/var/log/
+/tmp/
+.DS_Store
+
+# IDE and editor files
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# Environment files
+.env
+.env.local
+*.env
+
+# Notes and documentation
+study.md
+context.md
+
+# Go specific
+/vendor/
+/bin/
+/pkg/

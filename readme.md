@@ -14,3 +14,21 @@ We will use BoltDB as our database.
 recipe-app/cmd/main.go (main application entry point)
 recipe-app/internal/ (for application logic)
 recipe-app/web/templates/ (for HTML templates)
+
+
+### Viewing Server Logs
+
+#### View application logs
+tail -f /var/log/recipe-app/app.log
+
+#### View error logs
+tail -f /var/log/recipe-app/error.log
+
+#### View system service logs
+journalctl -u recipe-app -f
+
+#### View nginx access logs
+tail -f /var/log/nginx/access.log
+
+#### View nginx error logs
+tail -f /var/log/nginx/error.log
