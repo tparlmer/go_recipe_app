@@ -3,17 +3,42 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Recipe Test</title>
+    <title>Recipe App</title>
+    <style>
+        /* Basic navigation styling */
+        .nav {
+            background-color: #f8f9fa;
+            padding: 1rem;
+            margin-bottom: 2rem;
+        }
+        .nav a {
+            color: #333;
+            text-decoration: none;
+            margin-right: 1rem;
+            padding: 0.5rem;
+        }
+        .nav a:hover {
+            background-color: #e9ecef;
+            border-radius: 4px;
+        }
+    </style>
 </head>
 <body>
-{{if eq .Template "list"}} <!-- THIS IS THE INJECTION POINT -->
-    {{template "list" .Data}}
-{{else if eq .Template "view"}}
-    {{template "view" .Data}}
-{{else if eq .Template "create"}}
-    {{template "create" .Data}}
-{{else if eq .Template "edit"}}
-    {{template "edit" .Data}}
-{{end}}
+    <div class="nav">
+        <a href="/recipes">All Recipes</a>
+        <a href="/recipes/new">Add New Recipe</a>
+    </div>
+
+    <div class="container">
+        {{if eq .Template "list"}} <!-- THIS IS THE INJECTION POINT -->
+            {{template "list" .Data}}
+        {{else if eq .Template "view"}}
+            {{template "view" .Data}}
+        {{else if eq .Template "create"}}
+            {{template "create" .Data}}
+        {{else if eq .Template "edit"}}
+            {{template "edit" .Data}}
+        {{end}}
+    </div>
 </body>
 </html> 

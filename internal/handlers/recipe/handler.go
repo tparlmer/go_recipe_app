@@ -167,14 +167,49 @@ func (h *RecipeHandler) createRecipe(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Parse ingredients
+	names := r.Form["ingredient_names[]"]
+	amounts := r.Form["ingredient_amounts[]"]
+	units := r.Form["ingredient_units[]"]
+
+	ingredients := make([]models.Ingredient, len(names))
+	for i := range names {
+		amount, err := strconv.ParseFloat(amounts[i], 64)
+		if err != nil {
+			h.logger.Printf("Invalid amount for ingredient: %v", err)
+			http.Error(w, "Invalid ingredient amount", http.StatusBadRequest)
+			return
+		}
+
+		ingredients[i] = models.Ingredient{
+			ID:       fmt.Sprintf("ing-%d", i),
+			Name:     names[i],
+			Amount:   amount,
+			Unit:     units[i],
+			Position: i,
+		}
+	}
+
+	// Parse instructions
+	instructionSteps := r.Form["instructions[]"]
+	instructions := make([]models.Instruction, len(instructionSteps))
+	for i, step := range instructionSteps {
+		instructions[i] = models.Instruction{
+			ID:       fmt.Sprintf("step-%d", i),
+			Step:     step,
+			Position: i,
+		}
+	}
+
 	recipe := models.Recipe{
-		ID:          id,
-		Title:       r.FormValue("title"),
-		Description: r.FormValue("description"),
-		PrepTime:    prepTime,
-		CookTime:    cookTime,
-		Servings:    int32(servings),
-		// We'll add ingredients and instructions later
+		ID:           id,
+		Title:        r.FormValue("title"),
+		Description:  r.FormValue("description"),
+		PrepTime:     prepTime,
+		CookTime:     cookTime,
+		Servings:     int32(servings),
+		Ingredients:  ingredients,
+		Instructions: instructions,
 	}
 
 	// Validate required fields
@@ -223,27 +258,48 @@ func (h *RecipeHandler) editRecipeForm(w http.ResponseWriter, r *http.Request) {
 func (h *RecipeHandler) updateRecipe(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	id := vars["id"]
+	h.logger.Printf("Update request - ID format check: %s", id)
 
+	// Just check if recipe exists
+	if _, err := h.store.Get(id); err != nil {
+		h.logger.Printf("Error getting existing recipe: %v", err)
+		http.Error(w, "Recipe not found", http.StatusNotFound)
+		return
+	}
+
+	// Parse form values
 	if err := r.ParseForm(); err != nil {
 		h.logger.Printf("Error parsing form: %v", err)
 		http.Error(w, "Error processing form", http.StatusBadRequest)
 		return
 	}
 
-	// Parse form values with error handling
-	prepTime, err := time.ParseDuration(r.FormValue("prep_time") + "m")
-	if err != nil {
-		h.logger.Printf("Invalid prep time: %v", err)
-		http.Error(w, "Invalid prep time", http.StatusBadRequest)
-		return
-	}
+	// Debug logging for all form values
+	h.logger.Printf("All form values: %+v", r.Form)
+	h.logger.Printf("Form method: %s", r.Method)
+	h.logger.Printf("Content-Type: %s", r.Header.Get("Content-Type"))
 
-	cookTime, err := time.ParseDuration(r.FormValue("cook_time") + "m")
-	if err != nil {
-		h.logger.Printf("Invalid cook time: %v", err)
-		http.Error(w, "Invalid cook time", http.StatusBadRequest)
+	// Check if we're getting the value from Form vs PostForm
+	h.logger.Printf("prep_time from FormValue: '%s'", r.FormValue("prep_time"))
+	h.logger.Printf("prep_time from Form: '%s'", r.Form.Get("prep_time"))
+	h.logger.Printf("prep_time from PostForm: '%s'", r.PostForm.Get("prep_time"))
+
+	// Parse form values with error handling
+	prepTimeStr := r.FormValue("prep_time")
+	if prepTimeStr == "" {
+		h.logger.Printf("Empty prep time received")
+		http.Error(w, "Prep time is required", http.StatusBadRequest)
 		return
 	}
+	prepTime := time.Duration(mustParseFloat(prepTimeStr)) * time.Minute
+
+	cookTimeStr := r.FormValue("cook_time")
+	if cookTimeStr == "" {
+		h.logger.Printf("Empty cook time received")
+		http.Error(w, "Cook time is required", http.StatusBadRequest)
+		return
+	}
+	cookTime := time.Duration(mustParseFloat(cookTimeStr)) * time.Minute
 
 	servings, err := strconv.Atoi(r.FormValue("servings"))
 	if err != nil {
@@ -252,14 +308,55 @@ func (h *RecipeHandler) updateRecipe(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	recipe := models.Recipe{
-		ID:          id,
-		Title:       r.FormValue("title"),
-		Description: r.FormValue("description"),
-		PrepTime:    prepTime,
-		CookTime:    cookTime,
-		Servings:    int32(servings),
+	// Parse ingredients
+	names := r.Form["ingredient_names[]"]
+	amounts := r.Form["ingredient_amounts[]"]
+	units := r.Form["ingredient_units[]"]
+
+	ingredients := make([]models.Ingredient, len(names))
+	for i := range names {
+		amount, err := strconv.ParseFloat(amounts[i], 64)
+		if err != nil {
+			h.logger.Printf("Invalid amount for ingredient: %v", err)
+			http.Error(w, "Invalid ingredient amount", http.StatusBadRequest)
+			return
+		}
+
+		ingredients[i] = models.Ingredient{
+			ID:       fmt.Sprintf("ing-%d", i),
+			Name:     names[i],
+			Amount:   amount,
+			Unit:     units[i],
+			Position: i,
+		}
 	}
+
+	// Parse instructions
+	instructionSteps := r.Form["instructions[]"]
+	instructions := make([]models.Instruction, len(instructionSteps))
+	for i, step := range instructionSteps {
+		instructions[i] = models.Instruction{
+			ID:       fmt.Sprintf("step-%d", i),
+			Step:     step,
+			Position: i,
+		}
+	}
+
+	recipe := models.Recipe{
+		ID:           id,
+		Title:        r.FormValue("title"),
+		Description:  r.FormValue("description"),
+		PrepTime:     prepTime,
+		CookTime:     cookTime,
+		Servings:     int32(servings),
+		Ingredients:  ingredients,
+		Instructions: instructions,
+	}
+
+	h.logger.Printf("Method: %s", r.Method)
+	h.logger.Printf("Content-Type: %s", r.Header.Get("Content-Type"))
+	h.logger.Printf("Raw prep_time value: '%s'", r.FormValue("prep_time"))
+	h.logger.Printf("Raw cook_time value: '%s'", r.FormValue("cook_time"))
 
 	if err := h.store.Update(recipe); err != nil {
 		h.logger.Printf("Error updating recipe: %v", err)
@@ -267,7 +364,18 @@ func (h *RecipeHandler) updateRecipe(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	http.Redirect(w, r, "/recipes/"+recipe.ID, http.StatusSeeOther)
+	// Instead of redirecting, send a success response
+	w.WriteHeader(http.StatusOK)
+	// Optionally send a success message
+	w.Write([]byte("Recipe updated successfully"))
+}
+
+func mustParseFloat(s string) float64 {
+	f, err := strconv.ParseFloat(s, 64)
+	if err != nil {
+		return 0
+	}
+	return f
 }
 
 // Delete recipe handler

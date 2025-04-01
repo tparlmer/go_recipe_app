@@ -11,24 +11,31 @@ import (
 // below add fields with types
 // Use PascalCase for exported fiels that should be accessible outside the package
 // Use camelCase for unexported fields accesible within the package
+
+// Ingredient represents a recipe ingredient
+type Ingredient struct {
+	ID       string  `json:"id"`
+	Name     string  `json:"name"`
+	Amount   float64 `json:"amount"`
+	Unit     string  `json:"unit"`
+	Position int     `json:"position"` // For ordering ingredients
+}
+
+// Instruction represents a recipe step
+type Instruction struct {
+	ID       string `json:"id"`
+	Step     string `json:"step"`
+	Position int    `json:"position"` // For ordering steps
+}
+
+// Update Recipe struct to include ingredients and instructions
 type Recipe struct {
 	ID           string        `json:"id"`
 	Title        string        `json:"title"`
-	Description  string        `json:"description,omitempty"` // use omitempty when field is optional
-	PrepTime     time.Duration `json:"prep_time,omitempty"`
-	CookTime     time.Duration `json:"cook_time,omitempty"`
-	Servings     int32         `json:"servings,omitempty"`
+	Description  string        `json:"description"`
+	PrepTime     time.Duration `json:"prep_time"`
+	CookTime     time.Duration `json:"cook_time"`
+	Servings     int32         `json:"servings"`
 	Ingredients  []Ingredient  `json:"ingredients"`
 	Instructions []Instruction `json:"instructions"`
-}
-
-type Ingredient struct {
-	Quantity float32 `json:"quantity"`
-	Unit     string  `json:"unit"`
-	Name     string  `json:"name"`
-}
-
-type Instruction struct {
-	Step             uint   `json:"step"`
-	StepInstructions string `json:"instructions"`
 }

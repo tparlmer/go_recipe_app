@@ -1,27 +1,40 @@
 {{define "view"}}
-<div>
+<div class="recipe-view">
     <h1>{{.Title}}</h1>
-    <p>{{.Description}}</p>
-    <p>Servings: {{.Servings}}</p>
-    <p>Prep Time: {{.PrepTime}}</p>
-    <p>Cook Time: {{.CookTime}}</p>
-    <p>Ingredients:</p>
-    <ul>
-        {{range .Ingredients}}
-        <li>{{.Quantity}} {{.Unit}} {{.Name}}</li>
-        {{end}}
-    </ul>
-    <p>Instructions:</p>
-    <ol>
-        {{range .Instructions}}
-        <li>{{.Step}}. {{.StepInstructions}}</li>
-        {{end}}
-    </ol>
-</div>
+    
+    <div class="recipe-meta">
+        <p>Preparation Time: {{.PrepTime.Minutes}} minutes</p>
+        <p>Cooking Time: {{.CookTime.Minutes}} minutes</p>
+        <p>Servings: {{.Servings}}</p>
+    </div>
 
-<div class="recipe-actions">
-    <a href="/recipes/{{.ID}}/edit" class="button">Edit Recipe</a>
-    <button onclick="deleteRecipe('{{.ID}}')" class="button delete">Delete Recipe</button>
+    <div class="recipe-description">
+        <h2>Description</h2>
+        <p>{{.Description}}</p>
+    </div>
+
+    <div class="recipe-ingredients">
+        <h2>Ingredients</h2>
+        <ul>
+            {{range .Ingredients}}
+            <li>{{.Amount}} {{.Unit}} {{.Name}}</li>
+            {{end}}
+        </ul>
+    </div>
+
+    <div class="recipe-instructions">
+        <h2>Instructions</h2>
+        <ol>
+            {{range .Instructions}}
+            <li>{{.Step}}</li>
+            {{end}}
+        </ol>
+    </div>
+
+    <div class="recipe-actions">
+        <a href="/recipes/{{.ID}}/edit" class="button">Edit Recipe</a>
+        <button onclick="deleteRecipe('{{.ID}}')" class="button delete">Delete Recipe</button>
+    </div>
 </div>
 
 <script>

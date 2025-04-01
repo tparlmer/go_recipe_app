@@ -1,7 +1,7 @@
 {{define "edit"}}
 <div class="edit-recipe">
     <h1>Edit Recipe</h1>
-    <form method="POST" action="/recipes/{{.ID}}" onsubmit="return handleSubmit(this);">
+    <form method="POST" action="/recipes/{{.ID}}" onsubmit="return handleSubmit(this);" enctype="application/x-www-form-urlencoded">
         <input type="hidden" name="_method" value="PUT">
         
         <div class="form-group">
@@ -16,17 +16,55 @@
 
         <div class="form-group">
             <label for="prep_time">Prep Time (minutes):</label>
-            <input type="number" id="prep_time" name="prep_time" value="{{.PrepTime.Minutes}}" required>
+            <input type="number" 
+                   id="prep_time" 
+                   name="prep_time" 
+                   value="{{printf "%.0f" .PrepTime.Minutes}}" 
+                   min="0"
+                   required>
         </div>
 
         <div class="form-group">
             <label for="cook_time">Cook Time (minutes):</label>
-            <input type="number" id="cook_time" name="cook_time" value="{{.CookTime.Minutes}}" required>
+            <input type="number" 
+                   id="cook_time" 
+                   name="cook_time" 
+                   value="{{printf "%.0f" .CookTime.Minutes}}" 
+                   min="0"
+                   required>
         </div>
 
         <div class="form-group">
             <label for="servings">Servings:</label>
             <input type="number" id="servings" name="servings" value="{{.Servings}}" required>
+        </div>
+
+        <div class="ingredients-section">
+            <h3>Ingredients</h3>
+            <div id="ingredients-container">
+                {{range .Ingredients}}
+                <div class="ingredient-entry">
+                    <input type="text" name="ingredient_names[]" value="{{.Name}}" required>
+                    <input type="number" name="ingredient_amounts[]" value="{{.Amount}}" step="0.01" required>
+                    <input type="text" name="ingredient_units[]" value="{{.Unit}}" required>
+                    <button type="button" onclick="removeIngredient(this)">Remove</button>
+                </div>
+                {{end}}
+            </div>
+            <button type="button" onclick="addIngredient()">Add Ingredient</button>
+        </div>
+
+        <div class="instructions-section">
+            <h3>Instructions</h3>
+            <div id="instructions-container">
+                {{range .Instructions}}
+                <div class="instruction-entry">
+                    <textarea name="instructions[]" required>{{.Step}}</textarea>
+                    <button type="button" onclick="removeInstruction(this)">Remove</button>
+                </div>
+                {{end}}
+            </div>
+            <button type="button" onclick="addInstruction()">Add Instruction</button>
         </div>
 
         <button type="submit">Update Recipe</button>
@@ -35,24 +73,82 @@
 
 <script>
 function handleSubmit(form) {
-    // Convert POST to PUT
+    console.log("Form submission started");
     const method = form._method.value;
+    console.log("Method:", method);
+    
+    // Create FormData and log it
+    const formData = new FormData(form);
+    console.log("Form data before send:");
+    for (let pair of formData.entries()) {
+        console.log(pair[0] + ': ' + pair[1]);
+    }
+
     fetch(form.action, {
         method: method,
-        body: new FormData(form)
+        headers: {
+            // Add this to ensure server knows it's form data
+            'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        // Convert FormData to URLSearchParams
+        body: new URLSearchParams(formData).toString()
     }).then(response => {
-        if (response.ok) {
-            // Fix: Store ID in a variable using template syntax
-            const recipeId = "{{.ID}}";
-            window.location.href = "/recipes/" + recipeId;
-        } else {
-            alert('Error updating recipe');
+        console.log("Response status:", response.status);
+        if (!response.ok) {
+            return response.text().then(text => {
+                console.error('Error response:', text);
+                throw new Error(text);
+            });
         }
+        const recipeId = "{{.ID}}";
+        window.location.href = "/recipes/" + recipeId;
     }).catch(error => {
         console.error('Error:', error);
-        alert('Error updating recipe');
+        alert('Error updating recipe: ' + error);
     });
     return false;
+}
+
+function addIngredient() {
+    const container = document.getElementById('ingredients-container');
+    const newIngredient = document.createElement('div');
+    newIngredient.className = 'ingredient-entry';
+    newIngredient.innerHTML = `
+        <input type="text" name="ingredient_names[]" placeholder="Ingredient name" required>
+        <input type="number" name="ingredient_amounts[]" placeholder="Amount" step="0.01" required>
+        <input type="text" name="ingredient_units[]" placeholder="Unit" required>
+        <button type="button" onclick="removeIngredient(this)">Remove</button>
+    `;
+    container.appendChild(newIngredient);
+}
+
+function removeIngredient(button) {
+    const container = document.getElementById('ingredients-container');
+    if (container.children.length > 1) {
+        button.parentElement.remove();
+    } else {
+        alert('Recipe must have at least one ingredient');
+    }
+}
+
+function addInstruction() {
+    const container = document.getElementById('instructions-container');
+    const newInstruction = document.createElement('div');
+    newInstruction.className = 'instruction-entry';
+    newInstruction.innerHTML = `
+        <textarea name="instructions[]" placeholder="Enter instruction step" required></textarea>
+        <button type="button" onclick="removeInstruction(this)">Remove</button>
+    `;
+    container.appendChild(newInstruction);
+}
+
+function removeInstruction(button) {
+    const container = document.getElementById('instructions-container');
+    if (container.children.length > 1) {
+        button.parentElement.remove();
+    } else {
+        alert('Recipe must have at least one instruction');
+    }
 }
 </script>
 {{end}}

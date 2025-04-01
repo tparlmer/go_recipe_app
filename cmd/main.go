@@ -47,6 +47,34 @@ func main() {
 			PrepTime:    5 * time.Minute,
 			CookTime:    10 * time.Minute,
 			Servings:    4,
+			Ingredients: []models.Ingredient{
+				{
+					ID:       "ing-1",
+					Name:     "canned pinto beans",
+					Amount:   2,
+					Unit:     "cans",
+					Position: 0,
+				},
+				{
+					ID:       "ing-2",
+					Name:     "cumin",
+					Amount:   1,
+					Unit:     "tsp",
+					Position: 1,
+				},
+			},
+			Instructions: []models.Instruction{
+				{
+					ID:       "step-1",
+					Step:     "Drain and rinse beans",
+					Position: 0,
+				},
+				{
+					ID:       "step-2",
+					Step:     "Heat in pan with spices",
+					Position: 1,
+				},
+			},
 		},
 		{
 			ID:          "2",

@@ -27,7 +27,71 @@
             <input type="number" id="servings" name="servings" required>
         </div>
 
+        <div class="ingredients-section">
+            <h3>Ingredients</h3>
+            <div id="ingredients-container">
+                <div class="ingredient-entry">
+                    <input type="text" name="ingredient_names[]" placeholder="Ingredient name" required>
+                    <input type="number" name="ingredient_amounts[]" placeholder="Amount" step="0.01" required>
+                    <input type="text" name="ingredient_units[]" placeholder="Unit" required>
+                    <button type="button" onclick="removeIngredient(this)">Remove</button>
+                </div>
+            </div>
+            <button type="button" onclick="addIngredient()">Add Ingredient</button>
+        </div>
+
+        <div class="instructions-section">
+            <h3>Instructions</h3>
+            <div id="instructions-container">
+                <div class="instruction-entry">
+                    <textarea name="instructions[]" placeholder="Enter instruction step" required></textarea>
+                    <button type="button" onclick="removeInstruction(this)">Remove</button>
+                </div>
+            </div>
+            <button type="button" onclick="addInstruction()">Add Instruction</button>
+        </div>
+
         <button type="submit">Create Recipe</button>
     </form>
 </div>
+
+<script>
+function addIngredient() {
+    const container = document.getElementById('ingredients-container');
+    const newIngredient = document.createElement('div');
+    newIngredient.className = 'ingredient-entry';
+    newIngredient.innerHTML = `
+        <input type="text" name="ingredient_names[]" placeholder="Ingredient name" required>
+        <input type="number" name="ingredient_amounts[]" placeholder="Amount" step="0.01" required>
+        <input type="text" name="ingredient_units[]" placeholder="Unit" required>
+        <button type="button" onclick="removeIngredient(this)">Remove</button>
+    `;
+    container.appendChild(newIngredient);
+}
+
+function removeIngredient(button) {
+    const container = document.getElementById('ingredients-container');
+    if (container.children.length > 1) {
+        button.parentElement.remove();
+    }
+}
+
+function addInstruction() {
+    const container = document.getElementById('instructions-container');
+    const newInstruction = document.createElement('div');
+    newInstruction.className = 'instruction-entry';
+    newInstruction.innerHTML = `
+        <textarea name="instructions[]" placeholder="Enter instruction step" required></textarea>
+        <button type="button" onclick="removeInstruction(this)">Remove</button>
+    `;
+    container.appendChild(newInstruction);
+}
+
+function removeInstruction(button) {
+    const container = document.getElementById('instructions-container');
+    if (container.children.length > 1) {
+        button.parentElement.remove();
+    }
+}
+</script>
 {{end}}
