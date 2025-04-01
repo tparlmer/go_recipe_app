@@ -4,95 +4,33 @@ package main
 
 import (
 	"go_recipe_app/internal/handlers/recipe"
-	"go_recipe_app/internal/models"
-	"go_recipe_app/internal/storage/memory"
+	"go_recipe_app/internal/storage/boltdb"
 	"html/template" // Go's built-in template package
 	"log"           // For logging messages and errors
 	"net/http"      // Go's web server package
-	"time"
+	"os"
+	"path/filepath"
 )
 
-var tmpl *template.Template
-
-// func homeHandler(w http.ResponseWriter, r *http.Request) {
-// 	if r.URL.Path != "/" {
-// 		http.NotFound(w, r)
-// 		return
-// 	}
-// 	err := tmpl.ExecuteTemplate(w, "layout.html", nil)
-// 	if err != nil {
-// 		http.Error(w, err.Error(), http.StatusInternalServerError)
-// 		return
-// 	}
-// }
-
-// Currently setup for Recipe testing
 func main() {
 	// Parse templates
 	log.Println("Starting template parsing...")
-	tmpl = template.Must(template.ParseGlob("templates/*.html"))
+	tmpl := template.Must(template.ParseGlob("templates/*.html"))
 	log.Println("Templates parsed successfully")
 
-	// Create memory store
-	log.Println("Initializing memory store...")
-	store := memory.New()
-
-	// Add test recipes
-	log.Println("Adding test recipes to store...")
-	testRecipes := []models.Recipe{
-		{
-			ID:          "1",
-			Title:       "Refried Beans",
-			Description: "Canned beans cooked down with spices",
-			PrepTime:    5 * time.Minute,
-			CookTime:    10 * time.Minute,
-			Servings:    4,
-			Ingredients: []models.Ingredient{
-				{
-					ID:       "ing-1",
-					Name:     "canned pinto beans",
-					Amount:   2,
-					Unit:     "cans",
-					Position: 0,
-				},
-				{
-					ID:       "ing-2",
-					Name:     "cumin",
-					Amount:   1,
-					Unit:     "tsp",
-					Position: 1,
-				},
-			},
-			Instructions: []models.Instruction{
-				{
-					ID:       "step-1",
-					Step:     "Drain and rinse beans",
-					Position: 0,
-				},
-				{
-					ID:       "step-2",
-					Step:     "Heat in pan with spices",
-					Position: 1,
-				},
-			},
-		},
-		{
-			ID:          "2",
-			Title:       "Falafel",
-			Description: "Deep fried falafel balls",
-			PrepTime:    10 * time.Minute,
-			CookTime:    10 * time.Minute,
-			Servings:    4,
-		},
+	// Initialize BoltDB store
+	dbPath := filepath.Join("data", "recipes.db")
+	// Ensure data directory exists
+	if err := os.MkdirAll("data", 0755); err != nil {
+		log.Fatalf("Could not create data directory: %v", err)
 	}
 
-	// Store test recipes
-	for _, recipe := range testRecipes {
-		if err := store.Create(recipe); err != nil {
-			log.Printf("Error creating test recipe: %v", err)
-		}
+	store, err := boltdb.New(dbPath)
+	if err != nil {
+		log.Fatalf("Could not initialize database: %v", err)
 	}
-	log.Println("Test recipes added successfully")
+	defer store.Close()
+	log.Println("BoltDB store initialized successfully")
 
 	// Create new handler instance
 	log.Println("Initializing recipe handler...")
