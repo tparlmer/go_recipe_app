@@ -31,6 +31,7 @@ recipe-app
 .env
 .env.local
 *.env
+!.env.example
 
 # Notes and documentation
 study.md
