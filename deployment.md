@@ -289,3 +289,82 @@ sudo chmod 755 /etc/recipe-app
    ls -l /var/lib/recipe-app
    ls -l /etc/recipe-app/env
    ```
+
+## Database Management
+
+### Database Location Strategy
+- Production database lives in `/var/lib/recipe-app/`
+- Separate from application code
+- Survives deployments and updates
+- Follows Linux filesystem hierarchy standard
+
+### Database Migration Steps
+```bash
+# Create database directory if it doesn't exist
+sudo mkdir -p /var/lib/recipe-app
+
+# Copy existing database (if exists)
+sudo cp /var/www/recipe-app/current/data/recipes.db /var/lib/recipe-app/
+
+# Set correct ownership and permissions
+sudo chown recipe-app:recipe-app /var/lib/recipe-app/recipes.db
+sudo chmod 644 /var/lib/recipe-app/recipes.db
+
+# Verify database exists and has correct permissions
+ls -l /var/lib/recipe-app/recipes.db
+```
+
+### Database Backup Strategy
+1. **Backup Location**: `/var/backups/recipe-app/`
+2. **Backup Schedule**: Daily at 2 AM
+3. **Retention**: Keep last 7 daily backups
+4. **Backup Script**:
+```bash
+#!/bin/bash
+# /usr/local/bin/backup-recipe-db.sh
+
+BACKUP_DIR="/var/backups/recipe-app"
+DB_FILE="/var/lib/recipe-app/recipes.db"
+TIMESTAMP=$(date +%Y%m%d_%H%M%S)
+
+# Create backup directory
+mkdir -p "$BACKUP_DIR"
+
+# Create backup
+cp "$DB_FILE" "$BACKUP_DIR/recipes_$TIMESTAMP.db"
+
+# Rotate old backups (keep last 7)
+find "$BACKUP_DIR" -name "recipes_*.db" -mtime +7 -delete
+```
+
+### New Deployment Checklist
+- [ ] Verify database exists in `/var/lib/recipe-app/`
+- [ ] Check database permissions
+- [ ] Verify backup script is running
+- [ ] Test database access after deployment
+
+## Systemd Service Management
+1. **When to reload systemd daemon**:
+   - After modifying service files
+   - After changing environment files
+   - When seeing the "changed on disk" warning
+   
+2. **Common systemd commands**:
+   ```bash
+   # Reload systemd configuration
+   sudo systemctl daemon-reload
+
+   # Restart service
+   sudo systemctl restart recipe-app
+
+   # Check service status
+   sudo systemctl status recipe-app
+
+   # View service logs
+   sudo journalctl -u recipe-app -n 50
+   ```
+
+3. **Warning Signs**:
+   - "changed on disk" warning indicates need for daemon-reload
+   - Always reload before restart after configuration changes
+   - Ignore the warning at your own risk - service might use old configuration

@@ -6,10 +6,11 @@ import (
 	"fmt"
 	"go_recipe_app/internal/config"
 	"go_recipe_app/internal/handlers/recipe"
+	"go_recipe_app/internal/logging"
 	"go_recipe_app/internal/storage/boltdb"
-	"html/template" // Go's built-in template package
-	"log"           // For logging messages and errors
-	"net/http"      // Go's web server package
+	"html/template"
+	"log"
+	"net/http"
 )
 
 func main() {
@@ -19,29 +20,53 @@ func main() {
 		log.Fatalf("Failed to load configuration: %v", err)
 	}
 
-	// Configure logging
-	log.Printf("Starting application in %s mode", cfg.Env)
-	log.Printf("Log directory: %s", cfg.LogDir)
+	// Initialize new logger
+	logger, err := logging.NewLogger(logging.LogConfig{
+		Level:   cfg.LogLevel,
+		Format:  cfg.LogFormat,
+		LogPath: cfg.LogPath,
+	})
+	if err != nil {
+		log.Fatalf("Failed to initialize logger: %v", err)
+	}
 
 	// Parse templates
-	log.Println("Starting template parsing...")
-	tmpl := template.Must(template.ParseGlob("templates/*.html"))
-	log.Println("Templates parsed successfully")
+	logger.Info("parsing templates")
+	tmpl, err := template.ParseGlob("templates/*.html")
+	if err != nil {
+		logger.Error("failed to parse templates", "error", err)
+		return
+	}
+	logger.Info("templates parsed successfully")
 
-	// Initialize store with configured path
+	// Initialize store
 	store, err := boltdb.New(cfg.DBPath)
 	if err != nil {
-		log.Fatalf("Could not initialize database: %v", err)
+		logger.Error("failed to initialize database", "error", err)
+		return
 	}
 	defer store.Close()
-	log.Println("BoltDB store initialized successfully")
+	logger.Info("database initialized", "path", cfg.DBPath)
 
-	// Create new handler instance
-	log.Println("Initializing recipe handler...")
-	recipeHandler := recipe.New(tmpl, store)
-	log.Println("Recipe handler initialized")
+	// Create handler
+	logger.Info("initializing recipe handler")
+	recipeHandler := recipe.New(tmpl, store, logger)
+	logger.Info("recipe handler initialized")
 
 	addr := fmt.Sprintf(":%d", cfg.Port)
-	log.Printf("Server is running on http://localhost%s", addr)
-	log.Fatal(http.ListenAndServe(addr, recipeHandler.Router))
+	if cfg.Env == "development" || cfg.Env == "local" {
+		logger.Info("starting development server",
+			"url", fmt.Sprintf("http://localhost%s", addr),
+			"env", cfg.Env,
+		)
+	} else {
+		logger.Info("starting production server",
+			"port", cfg.Port,
+			"env", cfg.Env,
+		)
+	}
+
+	if err := http.ListenAndServe(addr, recipeHandler.Router); err != nil {
+		logger.Error("server failed", "error", err)
+	}
 }

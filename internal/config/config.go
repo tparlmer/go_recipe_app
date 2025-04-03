@@ -3,6 +3,7 @@ package config
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 	"strconv"
 	"time"
 )
@@ -21,6 +22,7 @@ type Config struct {
 	LogDir    string
 	LogLevel  string
 	LogFormat string // json or text
+	LogPath   string
 
 	// Security settings
 	AllowedOrigins []string
@@ -58,6 +60,10 @@ func Load() (*Config, error) {
 		LogDir:    getEnvWithDefault("RECIPE_APP_LOG_DIR", "logs"),
 		LogLevel:  getEnvWithDefault("RECIPE_APP_LOG_LEVEL", "info"),
 		LogFormat: getEnvWithDefault("RECIPE_APP_LOG_FORMAT", "text"),
+		LogPath: filepath.Join(
+			getEnvWithDefault("RECIPE_APP_LOG_DIR", "logs"),
+			"app.log",
+		),
 
 		// Security settings
 		ReadTimeout:  readTimeout,
