@@ -34,8 +34,6 @@ recipe-app
 !.env.example
 
 # Notes and documentation
-study.md
-context.md
 
 # Go specific
 /vendor/

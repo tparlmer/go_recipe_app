@@ -12,4 +12,3 @@ type RecipeStore interface {
 	Update(recipe models.Recipe) error
 	Delete(id string) error
 }
-

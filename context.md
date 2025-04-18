@@ -1,0 +1,29 @@
+## Post-MVP Features
+### Immediate Priorities
+- [ ] User System Implementation
+  - Phase 1: Integrated Authentication
+    - [ ] User Data Structure
+      - [ ] Separate user store in BoltDB
+      - [ ] User model with email/password
+      - [ ] Recipe ownership model
+      - [ ] Public/private recipe flags
+    - [ ] Authentication System
+      - [ ] JWT token implementation
+      - [ ] Password hashing
+      - [ ] Login/Register endpoints
+      - [ ] Auth middleware
+    - [ ] Permission System
+      - [ ] View/Edit permission logic
+      - [ ] Public recipe access
+      - [ ] Owner-only editing
+    - [ ] Service Architecture
+      - [ ] Clean interface boundaries
+      - [ ] Separate user package
+      - [ ] Service-based communication
+      - [ ] Preparation for future microservice
+  - Phase 2: Future Microservice Preparation
+    - [ ] Independent data storage
+    - [ ] API-first design
+    - [ ] Clear service boundaries
+    - [ ] Authentication token handling
+    - [ ] Cross-service communication plan 
