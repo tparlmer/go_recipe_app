@@ -8,7 +8,6 @@ import (
 
 	"github.com/go-kit/log"
 	bolt "go.etcd.io/bbolt" // Fork of the original bolt project, backwards compatible with bolt and actively maintained
-	"golang.org/x/tools/go/analysis/passes/errorsas"
 )
 
 var (

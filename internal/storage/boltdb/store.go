@@ -1,5 +1,7 @@
 package boltdb
 
+// REFACTOR THIS FILE TO RESEMBLE AUTH IMPLEMENTATION
+
 import (
 	"encoding/json"
 	"fmt"

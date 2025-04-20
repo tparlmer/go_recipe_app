@@ -1,5 +1,12 @@
 # Recipe App Development Journal
 
+## Wishlist Tasks
+- [ ] Replace slog with log
+- [ ] Refactor to go-kit service pattern (big main file where sub-features are composed)
+- [ ] Convert manual error handling to use "errors" package
+- [ ] Refactor Recipe DB to resemble Auth DB (use path/filepath package)
+
+
 ## MVP Checklist
 ### Core Features ✅
 - [x] Basic CRUD Operations
