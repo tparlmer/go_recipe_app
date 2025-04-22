@@ -29,7 +29,6 @@ END FUNCTION
 */
 
 import (
-	"fmt"
 	"go_recipe_app/auth"
 	"go_recipe_app/recipes"
 	"net/http"
@@ -119,14 +118,62 @@ func setupRecipeService(dataDir string, mainLogger log.Logger) recipes.RecipeSer
 	if err != nil {
 		panic(err)
 	}
-	// TODO: Add logging middleware
+	// TODO: Add logging middleware for RecipeService
 
 	return recipeSvc
 }
 
 // Sets up all routes for the application
 func setupRoutes(router *mux.Router, authService auth.AuthService, recipeService recipes.RecipeService, logger log.Logger) http.Handler {
-	// Add logic
+	// Parse HTML Templates
+	tmpl := template.Must(tmpl.ParseGlob("web/templates/*.html"))
+
+	// I want it to work like this??
+	// router.HandleFunc("/login", auth.Login(args))	
+	
+	// Auth Routes
+	router.HandleFunc("/login", nil)
+	router.HandleFunc("/login", nil)
+	router.HandleFunc("/register", nil)
+	router.HandleFunc("/register", nil)
+	router.HandleFunc("/login", nil)
+
+	// Public Recipe Routes
+	router.HandleFunc("/", nil)
+	router.HandleFunc("/recipes", nil)
+	router.HandleFunc("/recipes/{id}", nil)
+
+	// Protected Recipe Routes
+	router.HandleFunc("/my-recipes", nil)
+	router.HandleFunc("/recipes/new", nil)
+	router.HandleFunc("/recipes/create", nil)
+	router.HandleFunc("/recipes/{id}/edit", nil)
+	router.HandleFunc("/recipes/{id}/update", nil)
+	router.HandleFunc("/recipes/{id}/delete", nil)
+
+/*
+FUNCTION Route Mapping
+    AUTH ROUTES:
+    - GET /login        -> Login form
+    - POST /login       -> Process login
+    - GET /register     -> Registration form
+    - POST /register    -> Process registration
+    - GET /logout       -> Process logout
+
+    PUBLIC RECIPE ROUTES:
+    - GET /             -> Home page
+    - GET /recipes      -> List public recipes
+    - GET /recipes/{id} -> View public recipe
+
+    PROTECTED RECIPE ROUTES:
+    - GET /my-recipes           -> List user's recipes
+    - GET /recipes/new          -> Create recipe form
+    - POST /recipes/create      -> Process recipe creation
+    - GET /recipes/{id}/edit    -> Edit recipe form
+    - POST /recipes/{id}/update -> Process recipe update
+    - POST /recipes/{id}/delete -> Process recipe deletion
+END FUNCTION
+*/
 	return router
 }
 

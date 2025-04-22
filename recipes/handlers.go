@@ -1,5 +1,9 @@
 package recipes
 
+// ALL THESE HANDLERS ARE PASSED TO THE ROUTES IN setupRoutes() in main.go
+// TODO: Need to implement auth_middleware in recipes package
+// For this to be a hypermedia API I need to return fragments of html and links that maintain application state
+
 /*
 ARCHITECTURAL PSEUDOCODE - RECIPE HANDLERS WITH AUTH INTEGRATION
 
