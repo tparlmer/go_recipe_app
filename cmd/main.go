@@ -47,8 +47,7 @@ func main() {
 
 	// Load environment variables from .env file
 	if err := godotenv.Load(".env"); err != nil {
-		// mainLogger.Log("msg", "Error loading .env file", "err", err)
-		fmt.Errorf("Error loading .env file", err)
+		appLogger.Log("msg", "Error loading .env file", "err", err)
 		os.Exit(1)
 	}
 
@@ -130,120 +129,6 @@ func setupRoutes(router *mux.Router, authService auth.AuthService, recipeService
 	// Add logic
 	return router
 }
-
-// ---------------------------------
-// AI SLOP ATTEMPT BELOW: for auth refactor
-// ---------------------------------
-
-/* AI Slop Code
-import (
-	"fmt"
-	"net/http"
-	"os"
-	"path/filepath"
-
-	"github.com/gorilla/mux"
-
-	"go_recipe_app/auth"
-	"go_recipe_app/config"
-	"go_recipe_app/internal/logging"
-	"go_recipe_app/recipes"
-	recipedb "go_recipe_app/recipes/db"
-	"go_recipe_app/web"
-
-	kitlog "github.com/go-kit/log"
-)
-
-func main() {
-	// Load configuration
-	cfg, err := config.Load()
-	if err != nil {
-		fmt.Printf("Failed to load configuration: %v\n", err)
-		os.Exit(1)
-	}
-
-	// Create data directory if it doesn't exist
-	if err := os.MkdirAll(cfg.DataDir, 0755); err != nil {
-		fmt.Printf("Failed to create data directory: %v\n", err)
-		os.Exit(1)
-	}
-
-	// Initialize loggers
-	mainLogger := kitlog.NewLogfmtLogger(kitlog.NewSyncWriter(os.Stdout))
-	mainLogger = kitlog.With(mainLogger, "ts", kitlog.DefaultTimestampUTC)
-
-	// Initialize app logger but we'll use mainLogger for most operations
-	_, err = logging.NewLogger(logging.LogConfig{
-		Level:   cfg.LogLevel,
-		Format:  cfg.LogFormat,
-		LogPath: cfg.LogPath,
-	})
-	if err != nil {
-		fmt.Printf("Failed to initialize app logger: %v\n", err)
-		os.Exit(1)
-	}
-
-	// Initialize Auth service
-	authLogger := kitlog.With(mainLogger, "component", "auth")
-	authService, err := auth.NewAuthService(cfg.JWTSecret, cfg.DataDir, mainLogger, authLogger)
-	if err != nil {
-		mainLogger.Log("msg", "Failed to initialize auth service", "err", err)
-		os.Exit(1)
-	}
-	defer authService.Close(mainLogger)
-
-	// Initialize Recipe service
-	recipeLogger := kitlog.With(mainLogger, "component", "recipe")
-	recipeRepo, err := recipedb.NewBoltRecipeRepository(cfg.DataDir, recipeLogger)
-	if err != nil {
-		mainLogger.Log("msg", "Failed to initialize recipe repository", "err", err)
-		os.Exit(1)
-	}
-	defer recipeRepo.Close(recipeLogger)
-
-	recipeService := recipes.NewRecipeService(recipeRepo, recipeLogger)
-
-	// Parse templates
-	templatesDir := filepath.Join("web", "templates")
-	mainLogger.Log("msg", "parsing templates", "dir", templatesDir)
-
-	// Initialize router
-	router := mux.NewRouter()
-
-	// Setup static file serving
-	fileServer := http.FileServer(http.Dir("./web/static"))
-	router.PathPrefix("/static/").Handler(http.StripPrefix("/static/", fileServer))
-
-	// Setup routes
-	web.SetupRoutes(router, authService, recipeService, mainLogger)
-
-	// Start server
-	addr := fmt.Sprintf(":%d", cfg.Port)
-	srv := &http.Server{
-		Handler:      router,
-		Addr:         addr,
-		WriteTimeout: cfg.WriteTimeout,
-		ReadTimeout:  cfg.ReadTimeout,
-	}
-
-	if cfg.Env == "development" || cfg.Env == "local" {
-		mainLogger.Log("msg", "starting development server",
-			"url", fmt.Sprintf("http://localhost%s", addr),
-			"env", cfg.Env,
-		)
-	} else {
-		mainLogger.Log("msg", "starting production server",
-			"port", cfg.Port,
-			"env", cfg.Env,
-		)
-	}
-
-	if err := srv.ListenAndServe(); err != nil {
-		mainLogger.Log("msg", "server failed", "error", err)
-	}
-}
-*/
-
 
 /* Original code:
 import (
