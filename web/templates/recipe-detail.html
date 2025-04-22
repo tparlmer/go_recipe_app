@@ -1,0 +1,310 @@
+{{define "content"}}
+<div class="recipe-detail-container">
+    {{if .Recipe}}
+    <div class="recipe-header">
+        <div class="recipe-title-section">
+            <h1 class="recipe-title">{{.Recipe.Title}}</h1>
+        </div>
+        
+        <div class="recipe-actions">
+            {{if .CanEdit}}
+            <a href="/recipes/{{.Recipe.ID}}/edit" class="btn btn-secondary">Edit Recipe</a>
+            <button id="deleteRecipeBtn" class="btn btn-danger">Delete Recipe</button>
+            {{end}}
+        </div>
+    </div>
+    
+    <div class="recipe-description">
+        <p>{{.Recipe.Description}}</p>
+    </div>
+    
+    <div class="recipe-stats">
+        <div class="recipe-stat">
+            <span class="stat-icon">⏱️</span>
+            <div class="stat-details">
+                <span class="stat-label">Prep Time</span>
+                <span class="stat-value">{{.Recipe.PrepTime.Minutes}} mins</span>
+            </div>
+        </div>
+        <div class="recipe-stat">
+            <span class="stat-icon">🔥</span>
+            <div class="stat-details">
+                <span class="stat-label">Cook Time</span>
+                <span class="stat-value">{{.Recipe.CookTime.Minutes}} mins</span>
+            </div>
+        </div>
+        <div class="recipe-stat">
+            <span class="stat-icon">⏲️</span>
+            <div class="stat-details">
+                <span class="stat-label">Total Time</span>
+                <span class="stat-value">{{add .Recipe.PrepTime.Minutes .Recipe.CookTime.Minutes}} mins</span>
+            </div>
+        </div>
+        <div class="recipe-stat">
+            <span class="stat-icon">👤</span>
+            <div class="stat-details">
+                <span class="stat-label">Servings</span>
+                <span class="stat-value">{{.Recipe.Servings}}</span>
+            </div>
+        </div>
+    </div>
+    
+    <div class="recipe-content">
+        <div class="recipe-ingredients">
+            <h2>Ingredients</h2>
+            <ul class="ingredients-list">
+                {{range .Recipe.Ingredients}}
+                <li class="ingredient-item">{{.Amount}} {{.Unit}} {{.Name}}</li>
+                {{end}}
+            </ul>
+        </div>
+        
+        <div class="recipe-instructions">
+            <h2>Instructions</h2>
+            <ol class="instructions-list">
+                {{range .Recipe.Instructions}}
+                <li class="instruction-item">{{.Step}}</li>
+                {{end}}
+            </ol>
+        </div>
+    </div>
+    {{else}}
+    <div class="recipe-not-found">
+        <h2>Recipe Not Found</h2>
+        <p>The recipe you're looking for doesn't exist or you don't have permission to view it.</p>
+        <a href="/recipes" class="btn btn-primary">Back to Recipes</a>
+    </div>
+    {{end}}
+</div>
+
+<!-- Delete Confirmation Modal -->
+<div id="deleteModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>Confirm Deletion</h3>
+            <span class="close-modal">&times;</span>
+        </div>
+        <div class="modal-body">
+            <p>Are you sure you want to delete this recipe? This action cannot be undone.</p>
+        </div>
+        <div class="modal-footer">
+            <button id="cancelDeleteBtn" class="btn btn-secondary">Cancel</button>
+            <form id="deleteForm" action="/recipes/{{.Recipe.ID}}/delete" method="POST">
+                <button type="submit" class="btn btn-danger">Delete</button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<style>
+    .recipe-detail-container {
+        max-width: 900px;
+        margin: 0 auto;
+        padding: 2rem 1rem;
+    }
+    
+    .recipe-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 1.5rem;
+        flex-wrap: wrap;
+        gap: 1rem;
+    }
+    
+    .recipe-title-section {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        flex-wrap: wrap;
+    }
+    
+    .recipe-title {
+        margin: 0;
+        font-size: 2.25rem;
+        color: #1a1a1a;
+    }
+    
+    .recipe-actions {
+        display: flex;
+        gap: 0.75rem;
+    }
+    
+    .recipe-description {
+        margin-bottom: 2rem;
+        font-size: 1.1rem;
+        line-height: 1.6;
+    }
+    
+    .recipe-stats {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 1.5rem;
+        margin-bottom: 2rem;
+        padding: 1.5rem;
+        background-color: #f8f9fa;
+        border-radius: 8px;
+    }
+    
+    .recipe-stat {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+    }
+    
+    .stat-icon {
+        font-size: 1.5rem;
+    }
+    
+    .stat-details {
+        display: flex;
+        flex-direction: column;
+    }
+    
+    .stat-label {
+        font-size: 0.75rem;
+        color: #666;
+    }
+    
+    .stat-value {
+        font-weight: 500;
+    }
+    
+    .recipe-content {
+        display: grid;
+        grid-template-columns: 1fr 2fr;
+        gap: 2.5rem;
+    }
+    
+    @media (max-width: 768px) {
+        .recipe-content {
+            grid-template-columns: 1fr;
+        }
+    }
+    
+    .recipe-ingredients h2,
+    .recipe-instructions h2 {
+        font-size: 1.5rem;
+        margin-bottom: 1rem;
+        padding-bottom: 0.5rem;
+        border-bottom: 2px solid #eaeaea;
+    }
+    
+    .ingredients-list {
+        list-style-type: none;
+        padding: 0;
+    }
+    
+    .ingredient-item {
+        padding: 0.5rem 0;
+        border-bottom: 1px solid #f1f3f5;
+    }
+    
+    .instruction-item {
+        margin-bottom: 1rem;
+        padding-bottom: 1rem;
+        border-bottom: 1px solid #f1f3f5;
+    }
+    
+    .recipe-not-found {
+        text-align: center;
+        padding: 3rem;
+    }
+    
+    /* Modal styles */
+    .modal {
+        display: none;
+        position: fixed;
+        z-index: 1000;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.5);
+    }
+    
+    .modal-content {
+        background-color: #fff;
+        margin: 10% auto;
+        padding: 0;
+        border-radius: 8px;
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+        width: 90%;
+        max-width: 500px;
+    }
+    
+    .modal-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 1rem 1.5rem;
+        border-bottom: 1px solid #eaeaea;
+    }
+    
+    .modal-header h3 {
+        margin: 0;
+    }
+    
+    .close-modal {
+        font-size: 1.5rem;
+        font-weight: bold;
+        cursor: pointer;
+    }
+    
+    .modal-body {
+        padding: 1.5rem;
+    }
+    
+    .modal-footer {
+        display: flex;
+        justify-content: flex-end;
+        gap: 1rem;
+        padding: 1rem 1.5rem;
+        border-top: 1px solid #eaeaea;
+    }
+    
+    .btn-danger {
+        background-color: #dc3545;
+        border-color: #dc3545;
+    }
+    
+    .btn-danger:hover {
+        background-color: #c82333;
+        border-color: #bd2130;
+    }
+</style>
+
+<script>
+    // Modal functionality
+    document.addEventListener('DOMContentLoaded', function() {
+        const deleteModal = document.getElementById('deleteModal');
+        const deleteRecipeBtn = document.getElementById('deleteRecipeBtn');
+        const cancelDeleteBtn = document.getElementById('cancelDeleteBtn');
+        const closeModalBtn = document.querySelector('.close-modal');
+        
+        if (deleteRecipeBtn) {
+            deleteRecipeBtn.addEventListener('click', function() {
+                deleteModal.style.display = 'block';
+            });
+        }
+        
+        if (cancelDeleteBtn) {
+            cancelDeleteBtn.addEventListener('click', function() {
+                deleteModal.style.display = 'none';
+            });
+        }
+        
+        if (closeModalBtn) {
+            closeModalBtn.addEventListener('click', function() {
+                deleteModal.style.display = 'none';
+            });
+        }
+        
+        window.addEventListener('click', function(event) {
+            if (event.target === deleteModal) {
+                deleteModal.style.display = 'none';
+            }
+        });
+    });
+</script>
+{{end}} 

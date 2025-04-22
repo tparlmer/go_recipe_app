@@ -9,19 +9,17 @@ import "github.com/go-kit/log"
 
 // User represents a user in the system.
 type User struct {
-	UserID string `json:"userID"`
-	Username string `json:"username"`
-	FirstName string `json:"firstName"`
-	LastName string `json:"lastName"`
-	PasswordHash string `json:"passwordHash"`
-	Email string `json:"email"`
-	Roles []string
-	EmailVerified bool `json:"emailVerified"`
-
-	// add optional fields here if desired
+	UserID        string   `json:"userID"`
+	Username      string   `json:"username"`
+	FirstName     string   `json:"firstName"`
+	LastName      string   `json:"lastName"`
+	PasswordHash  string   `json:"passwordHash"`
+	Email         string   `json:"email"`
+	Roles         []string `json:"roles"`
+	EmailVerified bool     `json:"emailVerified"`
 }
 
-// Responsible for data access operations for auth
+// AuthRepository defines the interface for auth storage
 type AuthRepository interface {
 	CreateUser(user *User) error
 	GetUserByUsername(username string) (*User, error)
@@ -29,6 +27,5 @@ type AuthRepository interface {
 	UpdateUser(user *User) error
 	DeleteUser(id string) error
 	ListUsers() ([]User, error)
-
 	Close(logger log.Logger) error
 }

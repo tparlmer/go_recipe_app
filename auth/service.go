@@ -2,8 +2,8 @@ package auth
 
 import (
 	"errors"
-	"time"
 	"fmt"
+	"time"
 
 	"go_recipe_app/auth/db"
 
@@ -14,13 +14,15 @@ import (
 	"github.com/google/uuid"
 )
 
-// Auth token lasts for 5 minutes
+// Auth token lasts for 24 hours
 const (
-	tokenDuration = 5 * time.Minute
+	tokenDuration = 24 * time.Hour
 )
 
 var (
 	ErrInvalidCredentials = errors.New("invalid credentials")
+	ErrUserExists         = errors.New("user already exists")
+	ErrInvalidToken       = errors.New("invalid or expired token")
 )
 
 // OMIT Address
@@ -34,21 +36,21 @@ var (
 // }
 
 type User struct {
-	UserID string `json:"userID"`
-	Username string `json:"username"`
-	Firstname string `json:"firstname"`
-	Lastname string `json:"lastname"`
-	PasswordHash string `json:"passwordHash"`
-	Email string `json:"email"`
-	Roles []string `json:"roles"` // I will need an admin role to manually adjust other users recipes if necessary
-	EmailVerified bool `json:"emailverified"`
+	UserID        string   `json:"userID"`
+	Username      string   `json:"username"`
+	Firstname     string   `json:"firstname"`
+	Lastname      string   `json:"lastname"`
+	PasswordHash  string   `json:"passwordHash"`
+	Email         string   `json:"email"`
+	Roles         []string `json:"roles"` // I will need an admin role to manually adjust other users recipes if necessary
+	EmailVerified bool     `json:"emailverified"`
 }
 
 type AuthClaims struct {
 	jwt.RegisteredClaims
-	Username string `json:"username"`
-	UserID string `json:"user_id"`
-	Roles []string `json:"roles"`
+	Username string   `json:"username"`
+	UserID   string   `json:"user_id"`
+	Roles    []string `json:"roles"`
 }
 
 // AuthService provides user authentication operations
@@ -56,10 +58,10 @@ type AuthService interface {
 	// Authentication
 	Login(username, password string, roles []string) (string, int, string, string, string, error)
 	RefreshToken(token string) (refreshedToken string, expiresInSec int, err error)
-	ValidateToken(token string) (claims AuthClaims, err error)
+	ValidateToken(token string) (*AuthClaims, error)
 
 	// Registration
-	Register(username, password, firstName, lastName, email string, roles []string) error
+	Register(username, password, email, firstName, lastName string, roles []string) error
 
 	// Role Management
 	// THESE FUNCTIONS/METHODS STILL NEED TO BE CREATED
@@ -71,7 +73,7 @@ type AuthService interface {
 	// GetUserProfile(userID string) (*UserProfile, error)
 	// UpdateUserProfile(UserID string, profile *UserProfile) error
 	GetUserByUsername(username string) (*User, error)
-	GetUserByID(userID string) (*User, error)
+	GetUserByID(userID string) (*db.User, error)
 	// DeleteUser() - TODO: ADD
 	// ChangeUsername() - TODO: ADD
 
@@ -92,8 +94,8 @@ type AuthService interface {
 // WHAT IS ??
 type authServiceImpl struct {
 	JWT_SECRET_KEY string
-	logger log.Logger
-	repo db.AuthRepository
+	logger         log.Logger
+	repo           db.AuthRepository
 }
 
 // Constructor function for anew instance of authService
@@ -106,8 +108,8 @@ func NewAuthService(JWTsecretKey string, dataDir string, mainLogger log.Logger, 
 
 	return &authServiceImpl{
 		JWT_SECRET_KEY: JWTsecretKey,
-		logger: authLogger,
-		repo: repo,
+		logger:         authLogger,
+		repo:           repo,
 	}, nil
 }
 
@@ -146,13 +148,13 @@ func (s *authServiceImpl) Login(username, password string, roles []string) (stri
 	s.logger.Log("msg", "Password matched", "username", username)
 	claims := AuthClaims{
 		RegisteredClaims: jwt.RegisteredClaims{
-			Subject: user.UserID,
+			Subject:   user.UserID,
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(tokenDuration)),
-			IssuedAt: jwt.NewNumericDate(time.Now()),
+			IssuedAt:  jwt.NewNumericDate(time.Now()),
 		},
 		Username: user.Username,
-		UserID: user.UserID,
-		Roles: user.Roles,
+		UserID:   user.UserID,
+		Roles:    user.Roles,
 	}
 
 	// Create a new token object, specifying signing method and the claims
@@ -183,13 +185,13 @@ func (s *authServiceImpl) Register(username, password, email, firstName, lastNam
 
 	// Create a new user with new user ID
 	user := &db.User{
-		UserID: uuid.New().String(),
-		Username: username,
-		FirstName: firstName,
-		LastName: lastName,
-		PasswordHash: string(passwordHash),
-		Email: email,
-		Roles: roles,
+		UserID:        uuid.New().String(),
+		Username:      username,
+		FirstName:     firstName,
+		LastName:      lastName,
+		PasswordHash:  string(passwordHash),
+		Email:         email,
+		Roles:         roles,
 		EmailVerified: false,
 
 		// Initialize optional fields with zero values
@@ -217,13 +219,13 @@ func (s *authServiceImpl) RefreshToken(tokenString string) (string, int, error) 
 	// Create a new token with refreshed expiration time
 	refreshedToken := jwt.NewWithClaims(jwt.SigningMethodHS256, &AuthClaims{
 		RegisteredClaims: jwt.RegisteredClaims{
-			Subject: claims.Subject,
+			Subject:   claims.Subject,
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(tokenDuration)),
-			IssuedAt: jwt.NewNumericDate(time.Now()),
+			IssuedAt:  jwt.NewNumericDate(time.Now()),
 		},
 		Username: claims.Username,
-		UserID: claims.UserID,
-		Roles: claims.Roles,
+		UserID:   claims.UserID,
+		Roles:    claims.Roles,
 	})
 
 	refreshedTokenString, err := refreshedToken.SignedString([]byte(s.JWT_SECRET_KEY))
@@ -236,28 +238,28 @@ func (s *authServiceImpl) RefreshToken(tokenString string) (string, int, error) 
 }
 
 // ValidateToken validates a JWT for a user and returns the decoded claims.
-func (s *authServiceImpl) ValidateToken(tokenString string) (AuthClaims, error) {
+func (s *authServiceImpl) ValidateToken(tokenString string) (*AuthClaims, error) {
 	var claims AuthClaims
-	
+
 	// Parse the token with claims
 	token, err := jwt.ParseWithClaims(tokenString, &claims, func(token *jwt.Token) (interface{}, error) {
 		return []byte(s.JWT_SECRET_KEY), nil
 	})
 	if err != nil || !token.Valid {
-		return AuthClaims{}, errors.New("invalid token")
+		return nil, ErrInvalidToken
 	}
 
-	return claims, nil
+	return &claims, nil
 }
 
 // GetUserProfile retrieves user profile
 // func (s *authServiceImpl) GetUserProfile(userID string) (*UserProfile, error) {
-	// USER PROFILE NOT CURRENTLY USED
+// USER PROFILE NOT CURRENTLY USED
 // }
 
 // UpdateUserPRofile update's a user's profile. (cannot change anything else)
 // func (s *authServiceImpl) UpdateUserProfile(userID sting, profile *UserProfile) error {
-	// USER PROFILE NOT CURRENTLY USED
+// USER PROFILE NOT CURRENTLY USED
 // }
 
 // ChangePassword changes a user's password.
@@ -305,9 +307,9 @@ func (s *authServiceImpl) ResetPasswordInitiate(email string) (string, error) {
 
 	// Genearte a jwt token with the username as the subject
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
-		"userID": user.UserID,
+		"userID":   user.UserID,
 		"username": user.Username,
-		"exp": time.Now().Add(time.Hour * 1).Unix(),
+		"exp":      time.Now().Add(time.Hour * 1).Unix(),
 	})
 
 	// Sign and get the complete encoded token as a string
@@ -320,7 +322,7 @@ func (s *authServiceImpl) ResetPasswordInitiate(email string) (string, error) {
 }
 
 // ResetPasswordComplete
-// It validates the token, checks that the username matches the token, and updates the user's password. 
+// It validates the token, checks that the username matches the token, and updates the user's password.
 func (s *authServiceImpl) ResetPasswordComplete(resetToken string, username string, newPassword string) error {
 	s.logger.Log("msg", "Reset password completion attempted.", "username", username)
 
@@ -372,14 +374,8 @@ func (s *authServiceImpl) GetUserByUsername(username string) (*User, error) {
 }
 
 // GetUserByID returns a user by ID
-func (s *authServiceImpl) GetUserByID(userID string) (*User, error) {
-	user, err := s.repo.GetUserByID(userID)
-	if err != nil {
-		return nil, err
-	}
-	svcUser := convertToServiceUser(user)
-	svcUser.PasswordHash = ""
-	return svcUser, nil
+func (s *authServiceImpl) GetUserByID(userID string) (*db.User, error) {
+	return s.repo.GetUserByID(userID)
 }
 
 // ----------
@@ -412,8 +408,8 @@ func convertToServiceUser(user *db.User) *User {
 	// 	convertedProfile = nil
 	// }
 	return &User{
-		UserID:        user.UserID,
-		Username:      user.Username,
+		UserID:   user.UserID,
+		Username: user.Username,
 		// FirstName:     user.FirstName,
 		// LastName:      user.LastName,
 		PasswordHash:  user.PasswordHash,
@@ -422,4 +418,11 @@ func convertToServiceUser(user *db.User) *User {
 		EmailVerified: user.EmailVerified,
 		// Profile:       convertedProfile,
 	}
+}
+
+func errorToString(err error) string {
+	if err != nil {
+		return err.Error()
+	}
+	return ""
 }

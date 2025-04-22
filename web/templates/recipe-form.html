@@ -1,0 +1,414 @@
+{{define "content"}}
+<div class="recipe-form-container">
+    <div class="form-header">
+        <h1>{{if .Recipe.ID}}Edit Recipe{{else}}Add New Recipe{{end}}</h1>
+    </div>
+    
+    <form id="recipeForm" method="POST" action="{{if .Recipe.ID}}/recipes/{{.Recipe.ID}}/update{{else}}/recipes/create{{end}}">
+        {{if .Error}}
+        <div class="alert alert-danger">
+            {{.Error}}
+        </div>
+        {{end}}
+        
+        <div class="form-section">
+            <div class="form-group">
+                <label for="title">Recipe Title *</label>
+                <input type="text" id="title" name="title" value="{{.Recipe.Title}}" required class="form-control">
+            </div>
+            
+            <div class="form-group">
+                <label for="description">Description *</label>
+                <textarea id="description" name="description" rows="3" required class="form-control">{{.Recipe.Description}}</textarea>
+            </div>
+            
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="prep_time">Prep Time (minutes) *</label>
+                    <input type="number" id="prep_time" name="prep_time" value="{{.Recipe.PrepTime.Minutes}}" min="0" required class="form-control">
+                </div>
+                
+                <div class="form-group">
+                    <label for="cook_time">Cook Time (minutes) *</label>
+                    <input type="number" id="cook_time" name="cook_time" value="{{.Recipe.CookTime.Minutes}}" min="0" required class="form-control">
+                </div>
+                
+                <div class="form-group">
+                    <label for="servings">Servings *</label>
+                    <input type="number" id="servings" name="servings" value="{{.Recipe.Servings}}" min="1" required class="form-control">
+                </div>
+            </div>
+        </div>
+        
+        <div class="form-section">
+            <h2>Ingredients</h2>
+            <p class="section-helper">List all ingredients needed for this recipe</p>
+            
+            <div id="ingredients-container">
+                {{range $index, $ingredient := .Recipe.Ingredients}}
+                <div class="ingredient-row">
+                    <input type="number" name="ingredient_amounts[]" step="0.01" value="{{$ingredient.Amount}}" min="0" class="form-control" placeholder="Amount" required>
+                    <input type="text" name="ingredient_units[]" value="{{$ingredient.Unit}}" class="form-control" placeholder="Unit (g, cups, etc.)">
+                    <input type="text" name="ingredient_names[]" value="{{$ingredient.Name}}" class="form-control" placeholder="Name" required>
+                    <button type="button" class="btn btn-sm btn-outline-danger remove-ingredient">&times;</button>
+                </div>
+                {{else}}
+                <div class="ingredient-row">
+                    <input type="number" name="ingredient_amounts[]" step="0.01" min="0" class="form-control" placeholder="Amount" required>
+                    <input type="text" name="ingredient_units[]" class="form-control" placeholder="Unit (g, cups, etc.)">
+                    <input type="text" name="ingredient_names[]" class="form-control" placeholder="Name" required>
+                    <button type="button" class="btn btn-sm btn-outline-danger remove-ingredient">&times;</button>
+                </div>
+                {{end}}
+            </div>
+            
+            <button type="button" id="add-ingredient" class="btn btn-sm btn-outline-primary">
+                Add Ingredient
+            </button>
+        </div>
+        
+        <div class="form-section">
+            <h2>Instructions</h2>
+            <p class="section-helper">Step-by-step directions to prepare this recipe</p>
+            
+            <div id="instructions-container">
+                {{range $index, $instruction := .Recipe.Instructions}}
+                <div class="instruction-row">
+                    <div class="instruction-number">{{add $index 1}}</div>
+                    <textarea name="instructions[]" rows="2" class="form-control" placeholder="Describe this step...">{{$instruction.Step}}</textarea>
+                    <button type="button" class="btn btn-sm btn-outline-danger remove-instruction">&times;</button>
+                </div>
+                {{else}}
+                <div class="instruction-row">
+                    <div class="instruction-number">1</div>
+                    <textarea name="instructions[]" rows="2" class="form-control" placeholder="Describe this step..."></textarea>
+                    <button type="button" class="btn btn-sm btn-outline-danger remove-instruction">&times;</button>
+                </div>
+                {{end}}
+            </div>
+            
+            <button type="button" id="add-instruction" class="btn btn-sm btn-outline-primary">
+                Add Step
+            </button>
+        </div>
+        
+        <div class="form-actions">
+            <a href="{{if .Recipe.ID}}/recipes/{{.Recipe.ID}}{{else}}/recipes{{end}}" class="btn btn-secondary">Cancel</a>
+            <button type="submit" class="btn btn-primary">Save Recipe</button>
+        </div>
+    </form>
+</div>
+
+<style>
+    .recipe-form-container {
+        max-width: 800px;
+        margin: 0 auto;
+        padding: 2rem 1rem;
+    }
+    
+    .form-header {
+        margin-bottom: 2rem;
+    }
+    
+    .form-header h1 {
+        font-size: 2rem;
+        margin: 0;
+    }
+    
+    .form-section {
+        background-color: #f8f9fa;
+        border-radius: 8px;
+        padding: 1.5rem;
+        margin-bottom: 2rem;
+    }
+    
+    .form-section h2 {
+        font-size: 1.25rem;
+        margin-top: 0;
+        margin-bottom: 0.5rem;
+    }
+    
+    .section-helper {
+        color: #6c757d;
+        font-size: 0.9rem;
+        margin-bottom: 1.5rem;
+    }
+    
+    .form-group {
+        margin-bottom: 1.25rem;
+    }
+    
+    .form-row {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1rem;
+        margin-bottom: 1rem;
+    }
+    
+    .form-control {
+        width: 100%;
+        padding: 0.5rem 0.75rem;
+        font-size: 1rem;
+        border: 1px solid #ced4da;
+        border-radius: 4px;
+    }
+    
+    .ingredient-row,
+    .instruction-row {
+        display: flex;
+        gap: 0.75rem;
+        align-items: center;
+        margin-bottom: 0.75rem;
+    }
+    
+    .ingredient-row input:nth-child(1) {
+        width: 100px;
+    }
+    
+    .ingredient-row input:nth-child(2) {
+        width: 120px;
+    }
+    
+    .ingredient-row input:nth-child(3) {
+        flex-grow: 1;
+    }
+    
+    .instruction-number {
+        min-width: 2rem;
+        height: 2rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background-color: #6c757d;
+        color: white;
+        border-radius: 50%;
+        font-weight: bold;
+        font-size: 0.9rem;
+    }
+    
+    .btn {
+        padding: 0.5rem 1rem;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 1rem;
+        transition: all 0.2s;
+    }
+    
+    .btn-sm {
+        padding: 0.25rem 0.5rem;
+        font-size: 0.875rem;
+    }
+    
+    .btn-primary {
+        background-color: #0d6efd;
+        border-color: #0d6efd;
+        color: white;
+    }
+    
+    .btn-primary:hover {
+        background-color: #0b5ed7;
+        border-color: #0a58ca;
+    }
+    
+    .btn-secondary {
+        background-color: #6c757d;
+        border-color: #6c757d;
+        color: white;
+    }
+    
+    .btn-secondary:hover {
+        background-color: #5c636a;
+        border-color: #565e64;
+    }
+    
+    .btn-outline-primary {
+        border-color: #0d6efd;
+        color: #0d6efd;
+        background-color: transparent;
+    }
+    
+    .btn-outline-primary:hover {
+        background-color: #0d6efd;
+        color: white;
+    }
+    
+    .btn-outline-danger {
+        border-color: #dc3545;
+        color: #dc3545;
+        background-color: transparent;
+    }
+    
+    .btn-outline-danger:hover {
+        background-color: #dc3545;
+        color: white;
+    }
+    
+    .form-check {
+        display: flex;
+        align-items: flex-start;
+        padding-left: 1.5rem;
+        margin-bottom: 1rem;
+    }
+    
+    .form-check-input {
+        margin-top: 0.25rem;
+        margin-left: -1.5rem;
+    }
+    
+    .form-check-label {
+        margin-bottom: 0;
+    }
+    
+    .form-text {
+        display: block;
+        margin-top: 0.25rem;
+    }
+    
+    .form-actions {
+        display: flex;
+        justify-content: flex-end;
+        gap: 1rem;
+        margin-top: 2rem;
+    }
+    
+    .alert {
+        padding: 1rem;
+        margin-bottom: 1.5rem;
+        border-radius: 4px;
+    }
+    
+    .alert-danger {
+        color: #842029;
+        background-color: #f8d7da;
+        border: 1px solid #f5c2c7;
+    }
+    
+    @media (max-width: 576px) {
+        .form-row {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Add ingredient functionality
+        const ingredientsContainer = document.getElementById('ingredients-container');
+        const addIngredientBtn = document.getElementById('add-ingredient');
+        
+        addIngredientBtn.addEventListener('click', function() {
+            const newRow = document.createElement('div');
+            newRow.className = 'ingredient-row';
+            newRow.innerHTML = `
+                <input type="number" name="ingredient_amounts[]" step="0.01" min="0" class="form-control" placeholder="Amount" required>
+                <input type="text" name="ingredient_units[]" class="form-control" placeholder="Unit (g, cups, etc.)">
+                <input type="text" name="ingredient_names[]" class="form-control" placeholder="Name" required>
+                <button type="button" class="btn btn-sm btn-outline-danger remove-ingredient">&times;</button>
+            `;
+            ingredientsContainer.appendChild(newRow);
+            
+            // Focus the new input
+            const newInput = newRow.querySelector('input');
+            newInput.focus();
+        });
+        
+        // Remove ingredient functionality
+        ingredientsContainer.addEventListener('click', function(e) {
+            if (e.target.classList.contains('remove-ingredient')) {
+                const row = e.target.closest('.ingredient-row');
+                
+                // Ensure there's always at least one ingredient row
+                if (ingredientsContainer.children.length > 1) {
+                    row.remove();
+                } else {
+                    // Clear instead of remove if it's the last one
+                    const inputs = row.querySelectorAll('input');
+                    inputs.forEach(input => input.value = '');
+                }
+            }
+        });
+        
+        // Add instruction functionality
+        const instructionsContainer = document.getElementById('instructions-container');
+        const addInstructionBtn = document.getElementById('add-instruction');
+        
+        addInstructionBtn.addEventListener('click', function() {
+            const newRow = document.createElement('div');
+            newRow.className = 'instruction-row';
+            const stepNumber = instructionsContainer.children.length + 1;
+            
+            newRow.innerHTML = `
+                <div class="instruction-number">${stepNumber}</div>
+                <textarea name="instructions[]" rows="2" class="form-control" placeholder="Describe this step..."></textarea>
+                <button type="button" class="btn btn-sm btn-outline-danger remove-instruction">&times;</button>
+            `;
+            instructionsContainer.appendChild(newRow);
+            
+            // Focus the new textarea
+            const newTextarea = newRow.querySelector('textarea');
+            newTextarea.focus();
+        });
+        
+        // Remove instruction functionality
+        instructionsContainer.addEventListener('click', function(e) {
+            if (e.target.classList.contains('remove-instruction')) {
+                const row = e.target.closest('.instruction-row');
+                
+                // Ensure there's always at least one instruction row
+                if (instructionsContainer.children.length > 1) {
+                    row.remove();
+                    
+                    // Update step numbers
+                    const steps = instructionsContainer.querySelectorAll('.instruction-number');
+                    steps.forEach((step, index) => {
+                        step.textContent = index + 1;
+                    });
+                } else {
+                    // Clear instead of remove if it's the last one
+                    row.querySelector('textarea').value = '';
+                }
+            }
+        });
+        
+        // Form validation
+        const recipeForm = document.getElementById('recipeForm');
+        recipeForm.addEventListener('submit', function(e) {
+            let valid = true;
+            
+            // Check if there's at least one ingredient with content
+            const ingredientNames = document.querySelectorAll('input[name="ingredient_names[]"]');
+            let hasIngredient = false;
+            for (const name of ingredientNames) {
+                if (name.value.trim() !== '') {
+                    hasIngredient = true;
+                    break;
+                }
+            }
+            
+            if (!hasIngredient) {
+                valid = false;
+                alert('Please add at least one ingredient');
+            }
+            
+            // Check if there's at least one instruction with content
+            const instructions = document.querySelectorAll('textarea[name="instructions[]"]');
+            let hasInstruction = false;
+            for (const instruction of instructions) {
+                if (instruction.value.trim() !== '') {
+                    hasInstruction = true;
+                    break;
+                }
+            }
+            
+            if (!hasInstruction) {
+                valid = false;
+                alert('Please add at least one instruction step');
+            }
+            
+            if (!valid) {
+                e.preventDefault();
+            }
+        });
+    });
+</script>
+{{end}} 

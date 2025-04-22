@@ -18,8 +18,16 @@ import (
 // TemplateData is a struct that holds the data for the template
 // This is a common design pattern in Go to pass data to templates
 type TemplateData struct {
-	Template string
-	Data     interface{}
+	Recipe      *models.Recipe
+	Recipes     []models.Recipe
+	CanEdit     bool
+	Error       string
+	Success     string
+	CurrentPage int
+	TotalPages  int
+	CurrentYear int
+	SearchQuery string
+	SortOption  string
 }
 
 // RecipeHandler holds all dependencies for recipe handling
@@ -52,37 +60,56 @@ func (h *RecipeHandler) setupRoutes() {
 	}).Methods("GET")
 	h.Router.HandleFunc("/recipes", h.listRecipes).Methods("GET")          // list all recipes
 	h.Router.HandleFunc("/recipes/new", h.createRecipeForm).Methods("GET") // Show create form
-	h.Router.HandleFunc("/recipes", h.createRecipe).Methods("POST")        // Handle form submission
+	h.Router.HandleFunc("/recipes/create", h.createRecipe).Methods("POST") // Handle form submission
 	h.Router.HandleFunc("/recipes/{id}", h.getRecipe).Methods("GET")
 	h.Router.HandleFunc("/recipes/{id}/edit", h.editRecipeForm).Methods("GET")
-	h.Router.HandleFunc("/recipes/{id}", h.updateRecipe).Methods("PUT")
-	h.Router.HandleFunc("/recipes/{id}", h.deleteRecipe).Methods("DELETE")
+	h.Router.HandleFunc("/recipes/{id}/edit", h.updateRecipe).Methods("POST")
+	h.Router.HandleFunc("/recipes/{id}/delete", h.deleteRecipe).Methods("POST")
 }
 
 // Basic handler for listing recipes
 func (h *RecipeHandler) listRecipes(w http.ResponseWriter, r *http.Request) {
 	h.logger.Info("Handling list recipes request")
 
+	// Get search and sort parameters
+	searchQuery := r.URL.Query().Get("search")
+	sortOption := r.URL.Query().Get("sort")
+
+	// For now, we'll just list all recipes - in a real app you'd filter based on search
 	recipes, err := h.store.List()
 	if err != nil {
 		h.logger.Error("Error listing recipes", slog.Any("error", err))
 		http.Error(w, "Error getting recipes", http.StatusInternalServerError)
 		return
 	}
-	// h.logger.Printf("Found %d recipe", len(recipes))
 
-	data := TemplateData{
-		Template: "list",
-		Data:     recipes,
+	// For now, simple pagination logic - we'll improve this later
+	currentPage := 1
+	totalPages := 1
+	if len(recipes) > 0 {
+		totalPages = (len(recipes) + 9) / 10 // 10 recipes per page
 	}
 
-	err = h.tmpl.ExecuteTemplate(w, "layout.html", data)
+	// Get the current year for footer
+	currentYear := time.Now().Year()
+
+	// Create template data
+	data := TemplateData{
+		Recipes:     recipes,
+		CurrentPage: currentPage,
+		TotalPages:  totalPages,
+		CurrentYear: currentYear,
+		SearchQuery: searchQuery,
+		SortOption:  sortOption,
+	}
+
+	err = h.tmpl.ExecuteTemplate(w, "layout", data)
 	if err != nil {
 		h.logger.Error("Error executing template", slog.Any("error", err))
 		http.Error(w, "Internal server error", http.StatusInternalServerError)
 		return
 	}
-	h.logger.Info("Successfully rendered list of test recipes")
+	h.logger.Info("Successfully rendered list of recipes")
 }
 
 // Basic handler for getting a single recipe
@@ -102,14 +129,20 @@ func (h *RecipeHandler) getRecipe(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Render recipe
+	// For demonstration purposes, we'll assume the user can edit their own recipes
+	// In a real app, you'd check if the current user is the owner
+	canEdit := true
+	currentYear := time.Now().Year()
+
+	// Render recipe using the new recipe-detail.html template
 	data := TemplateData{
-		Template: "view",
-		Data:     recipe,
+		Recipe:      &recipe,
+		CanEdit:     canEdit,
+		CurrentYear: currentYear,
 	}
 
 	// Execute template
-	err = h.tmpl.ExecuteTemplate(w, "layout.html", data)
+	err = h.tmpl.ExecuteTemplate(w, "layout", data)
 	if err != nil {
 		h.logger.Error("Error executing template", slog.Any("error", err))
 		http.Error(w, "Internal server error", http.StatusInternalServerError)
@@ -120,12 +153,14 @@ func (h *RecipeHandler) getRecipe(w http.ResponseWriter, r *http.Request) {
 
 // Show the create recipe form
 func (h *RecipeHandler) createRecipeForm(w http.ResponseWriter, r *http.Request) {
+	currentYear := time.Now().Year()
+
 	data := TemplateData{
-		Template: "create",
-		Data:     nil,
+		Recipe:      &models.Recipe{}, // Empty recipe for the form
+		CurrentYear: currentYear,
 	}
 
-	err := h.tmpl.ExecuteTemplate(w, "layout.html", data)
+	err := h.tmpl.ExecuteTemplate(w, "layout", data)
 	if err != nil {
 		h.logger.Error("Error executing template", slog.Any("error", err))
 		http.Error(w, "Internal server error", http.StatusInternalServerError)
@@ -145,19 +180,23 @@ func (h *RecipeHandler) createRecipe(w http.ResponseWriter, r *http.Request) {
 	id := fmt.Sprintf("recipe-%d", time.Now().Unix())
 
 	// Parse form values with error handling
-	prepTime, err := time.ParseDuration(r.FormValue("prep_time") + "m")
+	prepTimeStr := r.FormValue("prep_time")
+	prepTimeInt, err := strconv.Atoi(prepTimeStr)
 	if err != nil {
 		h.logger.Error("Invalid prep time", slog.Any("error", err))
 		http.Error(w, "Invalid prep time", http.StatusBadRequest)
 		return
 	}
+	prepTime := time.Duration(prepTimeInt) * time.Minute
 
-	cookTime, err := time.ParseDuration(r.FormValue("cook_time") + "m")
+	cookTimeStr := r.FormValue("cook_time")
+	cookTimeInt, err := strconv.Atoi(cookTimeStr)
 	if err != nil {
 		h.logger.Error("Invalid cook time", slog.Any("error", err))
 		http.Error(w, "Invalid cook time", http.StatusBadRequest)
 		return
 	}
+	cookTime := time.Duration(cookTimeInt) * time.Minute
 
 	servings, err := strconv.Atoi(r.FormValue("servings"))
 	if err != nil {
@@ -173,6 +212,10 @@ func (h *RecipeHandler) createRecipe(w http.ResponseWriter, r *http.Request) {
 
 	ingredients := make([]models.Ingredient, len(names))
 	for i := range names {
+		if names[i] == "" {
+			continue
+		}
+
 		amount, err := strconv.ParseFloat(amounts[i], 64)
 		if err != nil {
 			h.logger.Error("Invalid amount for ingredient", slog.Any("error", err))
@@ -193,6 +236,9 @@ func (h *RecipeHandler) createRecipe(w http.ResponseWriter, r *http.Request) {
 	instructionSteps := r.Form["instructions[]"]
 	instructions := make([]models.Instruction, len(instructionSteps))
 	for i, step := range instructionSteps {
+		if step == "" {
+			continue
+		}
 		instructions[i] = models.Instruction{
 			ID:       fmt.Sprintf("step-%d", i),
 			Step:     step,
@@ -240,12 +286,14 @@ func (h *RecipeHandler) editRecipeForm(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	currentYear := time.Now().Year()
+
 	data := TemplateData{
-		Template: "edit",
-		Data:     recipe,
+		Recipe:      &recipe,
+		CurrentYear: currentYear,
 	}
 
-	err = h.tmpl.ExecuteTemplate(w, "layout.html", data)
+	err = h.tmpl.ExecuteTemplate(w, "layout", data)
 	if err != nil {
 		h.logger.Error("Error executing template", slog.Any("error", err))
 		http.Error(w, "Internal server error", http.StatusInternalServerError)
@@ -253,52 +301,45 @@ func (h *RecipeHandler) editRecipeForm(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// Handle the update
+// Update a recipe
 func (h *RecipeHandler) updateRecipe(w http.ResponseWriter, r *http.Request) {
+	// Get recipe ID from URL parameters
 	vars := mux.Vars(r)
 	id := vars["id"]
-	h.logger.Info("Update request - ID format check", slog.String("id", id))
 
-	// Just check if recipe exists
-	if _, err := h.store.Get(id); err != nil {
-		h.logger.Error("Error getting existing recipe", slog.Any("error", err))
-		http.Error(w, "Recipe not found", http.StatusNotFound)
-		return
-	}
-
-	// Parse form values
+	// Parse form data
 	if err := r.ParseForm(); err != nil {
 		h.logger.Error("Error parsing form", slog.Any("error", err))
 		http.Error(w, "Error processing form", http.StatusBadRequest)
 		return
 	}
 
-	// Debug logging for all form values
-	h.logger.Info("All form values", slog.Any("form", r.Form))
-	h.logger.Info("Form method", slog.String("method", r.Method))
-	h.logger.Info("Content-Type", slog.String("content_type", r.Header.Get("Content-Type")))
-
-	// Check if we're getting the value from Form vs PostForm
-	h.logger.Info("prep_time from FormValue", slog.String("prep_time", r.FormValue("prep_time")))
-	h.logger.Info("prep_time from Form", slog.String("prep_time", r.Form.Get("prep_time")))
-	h.logger.Info("prep_time from PostForm", slog.String("prep_time", r.PostForm.Get("prep_time")))
-
-	// Parse form values with error handling
-	prepTimeStr := r.FormValue("prep_time")
-	if prepTimeStr == "" {
-		h.logger.Error("Empty prep time received")
-		http.Error(w, "Prep time is required", http.StatusBadRequest)
+	// Get existing recipe
+	existingRecipe, err := h.store.Get(id)
+	if err != nil {
+		h.logger.Error("Error getting recipe to update", slog.Any("error", err))
+		http.Error(w, "Recipe not found", http.StatusNotFound)
 		return
 	}
-	prepTime := time.Duration(mustParseFloat(prepTimeStr)) * time.Minute
+
+	// Parse form values
+	prepTimeStr := r.FormValue("prep_time")
+	prepTimeInt, err := strconv.Atoi(prepTimeStr)
+	if err != nil {
+		h.logger.Error("Invalid prep time", slog.Any("error", err))
+		http.Error(w, "Invalid prep time", http.StatusBadRequest)
+		return
+	}
+	prepTime := time.Duration(prepTimeInt) * time.Minute
 
 	cookTimeStr := r.FormValue("cook_time")
-	if cookTimeStr == "" {
-		h.logger.Error("Empty cook time received")
-		http.Error(w, "Cook time is required", http.StatusBadRequest)
+	cookTimeInt, err := strconv.Atoi(cookTimeStr)
+	if err != nil {
+		h.logger.Error("Invalid cook time", slog.Any("error", err))
+		http.Error(w, "Invalid cook time", http.StatusBadRequest)
 		return
 	}
-	cookTime := time.Duration(mustParseFloat(cookTimeStr)) * time.Minute
+	cookTime := time.Duration(cookTimeInt) * time.Minute
 
 	servings, err := strconv.Atoi(r.FormValue("servings"))
 	if err != nil {
@@ -314,6 +355,10 @@ func (h *RecipeHandler) updateRecipe(w http.ResponseWriter, r *http.Request) {
 
 	ingredients := make([]models.Ingredient, len(names))
 	for i := range names {
+		if names[i] == "" {
+			continue
+		}
+
 		amount, err := strconv.ParseFloat(amounts[i], 64)
 		if err != nil {
 			h.logger.Error("Invalid amount for ingredient", slog.Any("error", err))
@@ -334,6 +379,9 @@ func (h *RecipeHandler) updateRecipe(w http.ResponseWriter, r *http.Request) {
 	instructionSteps := r.Form["instructions[]"]
 	instructions := make([]models.Instruction, len(instructionSteps))
 	for i, step := range instructionSteps {
+		if step == "" {
+			continue
+		}
 		instructions[i] = models.Instruction{
 			ID:       fmt.Sprintf("step-%d", i),
 			Step:     step,
@@ -341,56 +389,41 @@ func (h *RecipeHandler) updateRecipe(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	recipe := models.Recipe{
-		ID:           id,
-		Title:        r.FormValue("title"),
-		Description:  r.FormValue("description"),
-		PrepTime:     prepTime,
-		CookTime:     cookTime,
-		Servings:     int32(servings),
-		Ingredients:  ingredients,
-		Instructions: instructions,
-	}
+	// Update recipe fields
+	existingRecipe.Title = r.FormValue("title")
+	existingRecipe.Description = r.FormValue("description")
+	existingRecipe.PrepTime = prepTime
+	existingRecipe.CookTime = cookTime
+	existingRecipe.Servings = int32(servings)
+	existingRecipe.Ingredients = ingredients
+	existingRecipe.Instructions = instructions
 
-	h.logger.Info("Method", slog.String("method", r.Method))
-	h.logger.Info("Content-Type", slog.String("content_type", r.Header.Get("Content-Type")))
-	h.logger.Info("Raw prep_time value", slog.String("prep_time", r.FormValue("prep_time")))
-	h.logger.Info("Raw cook_time value", slog.String("cook_time", r.FormValue("cook_time")))
-
-	if err := h.store.Update(recipe); err != nil {
-		h.logger.Error("Error updating recipe", slog.Any("error", err))
-		http.Error(w, "Error updating recipe", http.StatusInternalServerError)
+	// Validate required fields
+	if existingRecipe.Title == "" {
+		data := TemplateData{
+			Recipe: &existingRecipe,
+			Error:  "Title is required",
+		}
+		h.tmpl.ExecuteTemplate(w, "layout", data)
 		return
 	}
 
-	// Instead of redirecting, send a success response
-	w.WriteHeader(http.StatusOK)
-	// Optionally send a success message
-	w.Write([]byte("Recipe updated successfully"))
-}
-
-func mustParseFloat(s string) float64 {
-	f, err := strconv.ParseFloat(s, 64)
-	if err != nil {
-		return 0
+	// Update the recipe
+	if err := h.store.Update(existingRecipe); err != nil {
+		h.logger.Error("Error updating recipe", slog.Any("error", err))
+		http.Error(w, "Error saving recipe", http.StatusInternalServerError)
+		return
 	}
-	return f
+
+	// Redirect to the updated recipe
+	http.Redirect(w, r, "/recipes/"+existingRecipe.ID, http.StatusSeeOther)
 }
 
-// Delete recipe handler
+// Delete a recipe
 func (h *RecipeHandler) deleteRecipe(w http.ResponseWriter, r *http.Request) {
+	// Get recipe ID from URL parameters
 	vars := mux.Vars(r)
 	id := vars["id"]
-
-	h.logger.Info("Attempting to delete recipe", slog.String("id", id))
-
-	// Check if recipe exists
-	_, err := h.store.Get(id)
-	if err != nil {
-		h.logger.Error("Recipe not found for deletion", slog.Any("error", err))
-		http.Error(w, "Recipe not found", http.StatusNotFound)
-		return
-	}
 
 	// Delete the recipe
 	if err := h.store.Delete(id); err != nil {
@@ -399,6 +432,6 @@ func (h *RecipeHandler) deleteRecipe(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	h.logger.Info("Successfully deleted recipe", slog.String("id", id))
+	// Redirect to the recipes list
 	http.Redirect(w, r, "/recipes", http.StatusSeeOther)
 }

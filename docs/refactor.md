@@ -61,6 +61,10 @@ go_recipe_app/
 
 ### Phase 1: Recipes Domain Creation
 
+0. **Other stuff
+   - [ ] Add user_recipes bucket to map users to recipes
+   - [ ] Add public_recipes bucket to map public flagged recipes to ids
+
 1. **Create Basic Structure**
    - [ ] Create `/recipes` directory
    - [ ] Create basic files: `service.go`, `handler.go`, `models.go`
